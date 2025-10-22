@@ -1,6 +1,15 @@
 # 무드매니저 (Mood Manager)
 
+---
+
+### AI-Based Personalized Mood Management System for Smart Homes
+
+---
+
+## Proposal
+
 "Mood Manager" is an AI-powered active multimodal wellness platform that analyzes users' biometric signals collected through wearable devices to automatically provide an environment (lighting, scent, and sound) optimized for their current state.
+
 This project is a team project for the Software Engineering program at Hanyang University, conducted in collaboration with LG Electronics.
 
 '무드매니저(Mood Manager)'는 웨어러블 기기를 통해 수집된 사용자의 생체 신호를 분석하여, 개인의 현재 상태에 최적화된 환경(조명, 향기, 소리)을 자동으로 제공하는 AI 기반 능동형 멀티모달 웰니스 플랫폼이다.

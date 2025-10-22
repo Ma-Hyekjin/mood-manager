@@ -7,9 +7,11 @@
 
 ## Proposal
 
-"Mood Manager" is an AI-powered active multimodal wellness platform that analyzes users' biometric signals collected through wearable devices to automatically provide an environment (lighting, scent, and sound) optimized for their current state.
+“Mood Manager,” is an AI-powered active multimodal wellness platform that analyzes users’ biometric signals collected through wearable devices to automatically provide an environment optimized for their physical and emotional state. It integrates data such as heart rate, HRV, and motion to infer the user’s mood and automatically adjust various environmental elements, including lighting, scent, and sound.
 
-This project is a team project for the Software Engineering program at Hanyang University, conducted in collaboration with LG Electronics.
+The primary goal of Mood Manager is to transform everyday spaces into intelligent, responsive wellness environments that enhance users’ psychological stability and emotional balance. By combining multimodal sensing, AI-based state analysis, and active control technologies, the system delivers a personalized wellness experience that dynamically adapts to each user’s condition.
+
+It aims to realize natural interaction between humans and intelligent devices, demonstrating how AI can support focus, relaxation, and mental well-being.
 
 '무드매니저(Mood Manager)'는 웨어러블 기기를 통해 수집된 사용자의 생체 신호를 분석하여, 개인의 현재 상태에 최적화된 환경(조명, 향기, 소리)을 자동으로 제공하는 AI 기반 능동형 멀티모달 웰니스 플랫폼이다.
 

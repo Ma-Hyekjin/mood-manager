@@ -27,7 +27,7 @@
 
 가장 먼저 사용자에게 보여줄 수 있는 최소 기능 단위(MVP)를 구축합니다.
 
-* [ ] **프로젝트 초기 설정**: Next.js 14+, TypeScript, Tailwind CSS, Shadcn/ui 기본 환경 구성
+* [x] **프로젝트 초기 설정**: Next.js 14+, TypeScript, Tailwind CSS, Shadcn/ui 기본 환경 구성
 * [ ] **메인 레이아웃 구현**: 공통 Header, Sidebar, Footer 등 기본 UI 구조 설계
 * [ ] **[WebApp] 프리셋 관리 (UI + Mock API)**: 사용자가 환경(조명/향기/소리) 조합을 '프리셋'으로 저장/수정/삭제하는 페이지 (CRUD)
 * [ ] **[WebApp] 기기 연동 및 관리 (UI + Mock API)**: 제어할 IoT 기기를 등록/관리하는 페이지 (CRUD)

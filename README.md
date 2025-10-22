@@ -3,6 +3,7 @@
 
 ### AI-Based Personalized Mood Management System for Smart Homes
 
+---
 
 ## Proposal
 

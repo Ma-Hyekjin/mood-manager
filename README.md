@@ -1,10 +1,8 @@
 # 무드매니저 (Mood Manager)
 
----
 
 ### AI-Based Personalized Mood Management System for Smart Homes
 
----
 
 ## Proposal
 

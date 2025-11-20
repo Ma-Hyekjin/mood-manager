@@ -2,6 +2,10 @@
 
 ### AI-Based Personalized Mood Management System for Smart Homes
 
+#### 📄 API Specification (v1)
+
+API Docs: [Mood Manager – API Specification v1](https://www.notion.so/Mood-Manager-API-Specification-v1-2b1739c2f15880a0bafcfdc063069488)
+
 -----
 
 ## Overview

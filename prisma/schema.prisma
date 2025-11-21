@@ -1,1 +1,241 @@
 // DB 스키마 정의 파일
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "erd.svg"
+}
+
+///// ENUMS /////
+
+enum DeviceStatus {
+  active
+  inactive
+}
+
+enum DataSource {
+  wearOS
+  firebase
+  manual
+  system
+}
+
+enum BioType {
+  sleep
+  stress
+  movement
+  respiratory
+  hrv
+}
+
+enum RecType {
+  mood
+  routine
+  emergency
+  proactive
+}
+
+///// MODELS /////
+
+
+//////////////////////////
+//  USER & DEVICE
+//////////////////////////
+
+model User {
+  user_id        Int       @id @default(autoincrement())
+  name           String?
+  email          String     @unique
+  password       String?
+  phone          String?    @unique
+  birth_year     Int?
+  gender         String?
+  created_at     DateTime   @default(now())
+
+  devices        Device[]
+  presets        Preset[]
+  bio_data       BioData[]
+  surveys        Survey[]
+  recommendations AIRecommendation[]
+  routines       MoodRoutine[]
+  periodic_raw   PeriodicRaw[]
+  sleep_sessions SleepSession[]
+  stress_logs    StressLog[]
+}
+
+model Device {
+  device_id         Int          @id @default(autoincrement())
+  user_id           Int
+  name              String
+  current_preset_id Int?
+  status            DeviceStatus @default(active)
+  registered_at     DateTime     @default(now())
+
+  user    User    @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  preset  Preset? @relation(fields: [current_preset_id], references: [preset_id])
+}
+
+
+//////////////////////////
+//  MULTIMODAL DATA
+//////////////////////////
+
+model PeriodicRaw {
+  periodic_id  Int       @id @default(autoincrement())
+  user_id      Int
+  timestamp    DateTime  @default(now())
+  source       DataSource
+  heart_rate   Float?
+  hrv_sdnn     Float?
+  movement     Int?
+  respiratory  Float?
+
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+}
+
+model SleepSession {
+  session_id      Int      @id @default(autoincrement())
+  user_id         Int
+  date            DateTime
+  start_time      DateTime?
+  end_time        DateTime?
+  sleep_score     Float?
+  total_sleep_min Int?
+  awakenings      Int?
+  respiratory_avg Float?
+  hrv_avg         Float?
+
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+}
+
+model StressLog {
+  stress_id       Int      @id @default(autoincrement())
+  user_id         Int
+  timestamp       DateTime @default(now())
+  stress_index    Float?
+  hrv             Float?
+  movement        Int?
+  reason_json     Json?
+
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+}
+
+model BioData {
+  bio_id        Int      @id @default(autoincrement())
+  user_id       Int
+  timestamp     DateTime @default(now())
+  bio_type      BioType
+  value_float   Float?
+  value_int     Int?
+  extra_json    Json?
+
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+}
+
+
+
+//////////////////////////
+//  PRESET COMPONENTS
+//////////////////////////
+
+model Fragrance {
+  fragrance_id      Int      @id @default(autoincrement())
+  name              String
+  description       String?
+  intensity_level   Int
+  operating_minutes Int
+  components_json   Json
+
+  presets Preset[]
+}
+
+model Light {
+  light_id    Int     @id @default(autoincrement())
+  name        String
+  color       String
+  brightness  Int
+
+  presets Preset[]
+}
+
+model Sound {
+  sound_id   Int     @id @default(autoincrement())
+  name       String
+  file_url   String
+
+  presets Preset[]
+}
+
+
+//////////////////////////
+//  PRESET (Unified)
+//////////////////////////
+
+model Preset {
+  preset_id     Int      @id @default(autoincrement())
+  user_id       Int
+  fragrance_id  Int
+  light_id      Int
+  sound_id      Int
+  name          String
+  created_at    DateTime @default(now())
+  updated_at    DateTime @default(now())
+  updated_type  String?
+
+  user          User       @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  fragrance     Fragrance  @relation(fields: [fragrance_id], references: [fragrance_id])
+  light         Light      @relation(fields: [light_id], references: [light_id])
+  sound         Sound      @relation(fields: [sound_id], references: [sound_id])
+  devices       Device[]
+  recommendations AIRecommendation[]
+}
+
+
+
+//////////////////////////
+//  SURVEY / ROUTINE / AI
+//////////////////////////
+
+model Survey {
+  survey_id       Int      @id @default(autoincrement())
+  user_id         Int
+  fragrance_pref  Json?
+  light_pref      Json?
+  sound_pref      Json?
+  mood_type_pref  String?
+  created_at      DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+}
+
+model MoodRoutine {
+  routine_id Int     @id @default(autoincrement())
+  user_id    Int
+  mood_name  String
+  start_time String
+  end_time   String
+  is_active  Boolean @default(true)
+
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+}
+
+model AIRecommendation {
+  rec_id           Int         @id @default(autoincrement())
+  user_id          Int
+  rec_type         RecType     @default(mood)
+  mood_name        String
+  preset_id        Int?
+  confidence_score Float?
+  reason_json      Json?
+  created_at       DateTime    @default(now())
+
+  user   User    @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  preset Preset? @relation(fields: [preset_id], references: [preset_id])
+}

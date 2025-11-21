@@ -31,6 +31,7 @@ export async function handleNewPeriodicDocument(
     }
 
     // Firestore Document → PeriodicRaw 타입으로 매핑
+    // [EDIT] is_fallback 필드 매핑 추가
     const raw: PeriodicRaw = {
       timestamp: data.timestamp ?? 0,
       heart_rate_avg: data.heart_rate_avg ?? 0,
@@ -39,6 +40,7 @@ export async function handleNewPeriodicDocument(
       movement_count: data.movement_count ?? 0,
       heart_rate_max: data.heart_rate_max,
       heart_rate_min: data.heart_rate_min,
+      is_fallback: data.is_fallback ?? false,
     };
 
     // 1) 전처리 엔진 호출 → 수면/스트레스 점수 계산

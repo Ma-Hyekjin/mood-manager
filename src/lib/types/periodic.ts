@@ -50,15 +50,24 @@ export interface PeriodicRaw {
    */
   movement_count: number;
 
+  // [EDIT] 새로운 필드 추가: heart_rate_max, heart_rate_min, is_fallback
+  // 기존에는 heart_rate_avg, hrv_sdnn, movement_count, respiratory_rate_avg, timestamp만 사용했으나
+  // 이제 heart_rate_max, heart_rate_min, is_fallback도 활용하여 더 정확한 계산 수행
   /**
-   * 최고 심박수 (optional)
+   * 최고 심박수
    * - 급성 스트레스 판단
    */
-  heart_rate_max?: number;
+  heart_rate_max: number;
 
   /**
-   * 최저 심박수 (optional)
+   * 최저 심박수
    * - Deep Sleep 감지 핵심 지표
    */
-  heart_rate_min?: number;
+  heart_rate_min: number;
+
+  /**
+   * 폴백 데이터 여부
+   * - 센서 데이터가 부족할 때 추정값 사용 여부
+   */
+  is_fallback: boolean;
 }

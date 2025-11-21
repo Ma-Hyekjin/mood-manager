@@ -1,19 +1,20 @@
 // src/lib/preprocessing/prepareOpenAIInput.ts
 /**
  * [파일 역할]
- * - 전처리된 점수(sleep_score, stress_score)와 날씨 데이터를
- *   OpenAI에 넘길 때 사용할 payload 형태로 변환하는 파일입니다.
+ * - 최종 전처리 결과(metrics)를 OpenAI 모델 입력 형식으로 변환합니다.
  *
  * [디자인 결정]
- * - sleep_score, stress_score, weather를 포함한 payload 생성
- * - timestamp는 현재 시각으로 추가
- * - [EDIT] weather 데이터 추가: 기상청 API에서 가져온 날씨 정보 포함
+ * - stress, sleep, weather, preferences, emotion을 포함한 payload 생성
+ * - sleep_score는 preprocessPeriodicSample에서 계산하지 않으며
+ *   calcTodaySleepScore() 결과를 route.ts에서 metrics.sleep.score로 전달받음
  *
  * [최종 payload 구조]
  * {
  *   stress: number,
  *   sleep: { score: number, details: object },
  *   weather: { temperature, humidity, rainType, sky },
+ *   preferences: { ... },
+ *   emotion: { laugh_count, sigh_count },
  *   timestamp: number
  * }
  */
@@ -21,50 +22,53 @@
 import type { ProcessedMetrics } from "@/lib/preprocessing/preprocess";
 
 export interface OpenAIInputPayload {
-  /** 스트레스 지수 (0~100) */
   stress: number;
-  /** 수면 정보 */
   sleep: {
-    /** 수면 점수 (0~100) */
     score: number;
-    /** 수면 세부 정보 (향후 확장 가능) */
     details: Record<string, unknown>;
   };
-  /** 날씨 정보 (있는 경우에만 포함) */
   weather?: {
-    /** 기온 (°C) */
     temperature: number;
-    /** 습도 (%) */
     humidity: number;
-    /** 강수형태 (0:없음, 1:비, 2:비/눈, 3:눈) */
     rainType: number;
-    /** 하늘상태 (1~4) */
     sky: number;
   };
-  /** 타임스탬프 (Unix epoch ms) */
+  preferences?: any;
+  emotion?: {
+    laugh_count: number;
+    sigh_count: number;
+  };
   timestamp: number;
 }
 
 export function prepareOpenAIInput(
   metrics: ProcessedMetrics
 ): OpenAIInputPayload {
-  const { sleep_score, stress_score, weather } = metrics;
+  const {
+    stress_score,
+    sleep_score,          // ← route.ts에서 { score, details } 형태로 전달됨
+    weather,
+    preferences,
+    laugh_count,
+    sigh_count,
+  } = metrics;
 
   return {
     stress: stress_score,
+
     sleep: {
       score: sleep_score,
-      details: {}, // 향후 수면 세부 정보 확장 가능
+      details: {},
     },
-    // [EDIT] weather 데이터 포함 (있는 경우에만)
-    ...(weather && {
-      weather: {
-        temperature: weather.temperature,
-        humidity: weather.humidity,
-        rainType: weather.rainType,
-        sky: weather.sky,
-      },
-    }),
+
+    ...(weather && { weather }),
+    ...(preferences && { preferences }),
+
+    emotion: {
+      laugh_count: laugh_count ?? 0,
+      sigh_count: sigh_count ?? 0,
+    },
+
     timestamp: Date.now(),
   };
 }

@@ -7,8 +7,9 @@
  *   그 결과를 캐시에 저장하는 Job 모듈입니다.
  *
  * [주의사항]
- * - 이 모듈은 “단일 문서 기준” 전처리만 담당합니다.
+ * - 이 모듈은 "단일 문서 기준" 전처리만 담당합니다.
  *   → 여러 샘플을 모아서 세션 분석하는 기능은 별도 Job으로 확장 가능.
+ * - [EDIT] 날씨 데이터 통합: 기상청 API를 호출하여 날씨 정보를 가져와 전처리 결과에 포함
  */
 
 import type {
@@ -18,6 +19,9 @@ import type {
 import { PeriodicRaw } from "@/lib/types/periodic";
 import { preprocessPeriodicSample } from "@/lib/preprocessing";
 import { setProcessedMetrics } from "@/backend/cache/periodicCache";
+// [EDIT] 날씨 데이터 가져오기 추가
+import { fetchWeather } from "@/lib/weather/fetchWeather";
+
 
 export async function handleNewPeriodicDocument(
   doc: QueryDocumentSnapshot<DocumentData>
@@ -43,8 +47,25 @@ export async function handleNewPeriodicDocument(
       is_fallback: data.is_fallback ?? false,
     };
 
-    // 1) 전처리 엔진 호출 → 수면/스트레스 점수 계산
-    const metrics = preprocessPeriodicSample(raw);
+    // [EDIT] 날씨 데이터 가져오기 추가
+    // 기상청 API를 호출하여 현재 날씨 정보를 가져옵니다.
+    // API 호출 실패 시에도 전처리는 계속 진행합니다 (weather는 optional).
+    let weather;
+    try {
+      weather = await fetchWeather();
+      // eslint-disable-next-line no-console
+      console.log("[preprocessPeriodic] 날씨 데이터 조회 성공:", weather);
+    } catch (weatherError) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        "[preprocessPeriodic] 날씨 데이터 조회 실패, 전처리는 계속 진행:",
+        weatherError
+      );
+      // weather는 undefined로 유지되어 optional 처리됨
+    }
+
+    // 1) 전처리 엔진 호출 → 수면/스트레스 점수 계산 (날씨 데이터 포함)
+    const metrics = preprocessPeriodicSample(raw, weather);
 
     // 2) 최신 전처리 결과를 캐시에 저장
     setProcessedMetrics(metrics.sleep_score, metrics.stress_score);

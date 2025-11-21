@@ -13,29 +13,36 @@
  * 5) 여기서 sleep_score / stress_score를 계산
  * 6) backend/cache/periodicCache.ts 에 결과를 저장
  * 7) /api/preprocessing route 에서 최신 score를 응답
- * 8) OpenAI 호출 시 { sleep_score, stress_score }를 그대로 전달
+ * 8) OpenAI 호출 시 { sleep_score, stress_score, weather }를 그대로 전달
  *
  * [입력]
  * - PeriodicRaw (src/lib/types/periodic.ts 참고)
+ * - WeatherData (optional) - 날씨 데이터
  *
  * [출력]
- * - { sleep_score: number, stress_score: number }
+ * - { sleep_score: number, stress_score: number, weather?: WeatherData }
  *
  * [주의사항]
  * - 이 함수는 "단일 샘플용" 전처리입니다.
  *   → 수면 세션(여러 샘플)의 평균 점수 등은 별도 함수로 확장 예정.
+ * - [EDIT] weather 데이터 추가: 전처리 파이프라인에 날씨 정보 포함
  */
 
 import { PeriodicRaw } from "@/lib/types/periodic";
 import { calculateSleepScore } from "@/lib/sleep";
 import { calculateStressIndex } from "@/lib/stress";
+import type { WeatherData } from "@/lib/weather/fetchWeather";
 
 export interface ProcessedMetrics {
   sleep_score: number;   // 0~100
   stress_score: number;  // 0~100
+  weather?: WeatherData; // [EDIT] 날씨 데이터 추가 (optional)
 }
 
-export function preprocessPeriodicSample(raw: PeriodicRaw): ProcessedMetrics {
+export function preprocessPeriodicSample(
+  raw: PeriodicRaw,
+  weather?: WeatherData
+): ProcessedMetrics {
   // 수면 점수 계산 (0~100)
   const sleep_score = calculateSleepScore(raw);
 
@@ -45,5 +52,7 @@ export function preprocessPeriodicSample(raw: PeriodicRaw): ProcessedMetrics {
   return {
     sleep_score,
     stress_score,
+    // [EDIT] weather 데이터 포함 (있는 경우에만)
+    ...(weather && { weather }),
   };
 }

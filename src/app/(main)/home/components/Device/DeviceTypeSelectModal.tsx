@@ -1,56 +1,57 @@
-/**
- * File: src/app/(main)/home/components/Device/DeviceTypeSelectModal.tsx
- *
- * DeviceTypeSelectModal Component
- *
- * 구성 요소:
- *  - "어떤 종류의 디바이스를 추가하시겠습니까?"
- *  - 4가지 타입 선택 (manager / light / scent / speaker)
- *
- * Props:
- *  - isOpen: boolean
- *  - onSelect(type: DeviceType)
- *  - onCancel()
- */
+// ======================================================
+// File: src/app/(main)/home/components/Device/DeviceTypeSelectModal.tsx
+// ======================================================
 
-import { DeviceType } from "../../types/device";
+/*
+  [DeviceTypeSelectModal 역할 정리]
 
-interface DeviceTypeSelectModalProps {
-  isOpen: boolean;
-  onSelect: (type: DeviceType) => void;
-  onCancel: () => void;
-}
+  - 새 디바이스 추가 시 어떤 디바이스 타입인지 선택하는 모달
+  - Manager / Light / Scent / Speaker 선택 가능
+  - 클릭 시 선택한 type을 부모(onSelect)로 전달
+  - 배경 클릭 시 닫히지 않음 (명확한 인터랙션 보장)
+*/
+
+"use client";
 
 export default function DeviceTypeSelectModal({
-  isOpen,
   onSelect,
-  onCancel,
-}: DeviceTypeSelectModalProps) {
-  if (!isOpen) return null;
-
-  const types: DeviceType[] = ["manager", "light", "scent", "speaker"];
+  onClose,
+}: {
+  onSelect: (type: string) => void;
+  onClose: () => void;
+}) {
+  const types = [
+    { id: "manager", label: "Manager", icon: "🌈" },
+    { id: "light", label: "Smart Light", icon: "💡" },
+    { id: "scent", label: "Scent Diffuser", icon: "🧴" },
+    { id: "speaker", label: "Speaker", icon: "🔊" },
+  ];
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white w-80 p-6 rounded-xl shadow space-y-5">
-        <p className="text-lg font-semibold text-center">
-          어떤 디바이스를 추가하시겠습니까?
-        </p>
+    <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+      <div className="bg-white w-[300px] rounded-xl p-5 shadow-lg">
+        <div className="text-lg font-semibold mb-4 text-center">
+          디바이스 종류 선택
+        </div>
 
         <div className="grid grid-cols-2 gap-3">
           {types.map((t) => (
-            <button
-              key={t}
-              className="p-3 w-full bg-gray-100 rounded-lg hover:bg-gray-200 capitalize"
-              onClick={() => onSelect(t)}
+            <div
+              key={t.id}
+              onClick={() => onSelect(t.id)}
+              className="p-3 border rounded-xl flex flex-col items-center cursor-pointer hover:bg-gray-50"
             >
-              {t}
-            </button>
+              <div className="text-3xl">{t.icon}</div>
+              <div className="mt-1 text-sm">{t.label}</div>
+            </div>
           ))}
         </div>
 
-        <button className="w-full py-2 rounded bg-gray-300" onClick={onCancel}>
-          취소
+        <button
+          onClick={onClose}
+          className="w-full mt-5 py-2 rounded-lg bg-gray-200 text-center"
+        >
+          닫기
         </button>
       </div>
     </div>

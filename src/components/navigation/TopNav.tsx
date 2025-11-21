@@ -1,23 +1,21 @@
-/**
- * File: src/components/navigation/TopNav.tsx
- *
- * Top Navigation Bar
- * - Mood Manager Logo 표시
- * - 홈 전체 상단에서 고정 위치
- */
+// ======================================================
+// File: src/components/navigation/TopNav.tsx
+// ======================================================
 
-import Image from "next/image";
+/*
+  [TopNav 역할 정리]
+
+  - app/layout.tsx 의 375px 중앙정렬 프레임 안의 최상단 네비게이션 바
+  - Mood Manager 로고(svg)를 중앙 배치
+  - 좌우 버튼은 현재 없음 (향후 설정/알림 버튼 등 확장 가능)
+*/
+
+"use client";
 
 export default function TopNav() {
   return (
-    <div className="w-full h-14 flex items-center justify-center bg-white shadow-sm fixed top-0 left-0 z-40">
-      <Image
-        src="/mood-manager-logo.svg"  // 실제 파일 넣으면 그 이름 사용
-        alt="Mood Manager"
-        width={140}
-        height={32}
-        className="object-contain"
-      />
+    <div className="w-full h-14 flex items-center justify-center border-b bg-white">
+      <img src="/mood-manager-logo.svg" className="h-7" alt="Mood Manager" />
     </div>
   );
 }

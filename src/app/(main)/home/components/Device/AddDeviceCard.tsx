@@ -1,27 +1,29 @@
-/**
- * File: src/app/(main)/home/components/Device/AddDeviceCard.tsx
- *
- * AddDeviceCard Component (+ 카드)
- *
- * UX:
- *  - 항상 DeviceGrid 내부에서 마지막에 표시됨
- *  - 클릭 시 "디바이스 타입 선택 모달" 호출
- *
- * Props:
- *  - onAddDevice(): void
- */
+// ======================================================
+// File: src/app/(main)/home/components/Device/AddDeviceCard.tsx
+// ======================================================
 
-interface AddDeviceCardProps {
+/*
+  [AddDeviceCard 역할 정리]
+
+  - 디바이스를 추가하는 용도의 카드
+  - 항상 그리드 마지막에 존재
+  - 2×N 구조에서 한 칸을 차지 (col-span-1)
+  - 클릭 시 onAdd() 호출 → 추후 모달로 디바이스 유형 선택 예정
+*/
+
+"use client";
+
+export default function AddDeviceCard({
+  onAdd,
+}: {
   onAdd: () => void;
-}
-
-export default function AddDeviceCard({ onAdd }: AddDeviceCardProps) {
+}) {
   return (
     <div
-      className="w-full h-28 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-xl cursor-pointer"
+      className="h-[100px] flex items-center justify-center border border-dashed rounded-xl cursor-pointer text-3xl text-gray-500 hover:bg-gray-50 transition"
       onClick={onAdd}
     >
-      <span className="text-3xl text-gray-400">+</span>
+      +
     </div>
   );
 }

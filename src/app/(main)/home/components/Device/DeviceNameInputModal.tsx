@@ -1,63 +1,58 @@
-/**
- * File: src/app/(main)/home/components/Device/DeviceNameInputModal.tsx
- *
- * DeviceNameInputModal Component
- *
- * 구성 요소:
- *  - 이름 입력 input
- *  - 확인 / 취소
- *
- * Props:
- *  - isOpen: boolean
- *  - onSubmit(name: string)
- *  - onCancel()
- */
+// ======================================================
+// File: src/app/(main)/home/components/Device/DeviceNameInputModal.tsx
+// ======================================================
+
+/*
+  [DeviceNameInputModal 역할 정리]
+
+  - 디바이스 타입 선택 후, 사용자가 디바이스의 이름을 입력하는 모달
+  - 이름 입력 후 onSubmit(name) 호출해 DeviceGrid에서 디바이스 생성 가능
+  - 닫기 버튼으로 onClose 호출
+*/
+
+"use client";
 
 import { useState } from "react";
 
-interface DeviceNameInputModalProps {
-  isOpen: boolean;
-  onSubmit: (name: string) => void;
-  onCancel: () => void;
-}
-
 export default function DeviceNameInputModal({
-  isOpen,
   onSubmit,
-  onCancel,
-}: DeviceNameInputModalProps) {
+  onClose,
+}: {
+  onSubmit: (name: string) => void;
+  onClose: () => void;
+}) {
   const [name, setName] = useState("");
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white w-80 p-6 rounded-xl shadow space-y-4">
-        <p className="text-lg font-semibold">디바이스 이름을 입력하세요</p>
+    <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+      <div className="bg-white w-[300px] rounded-xl p-5 shadow-lg">
+        <div className="text-lg font-semibold mb-4 text-center">
+          디바이스 이름 지정
+        </div>
 
         <input
-          className="w-full border px-3 py-2 rounded-lg"
-          placeholder="기기 이름 입력"
+          type="text"
+          className="w-full p-2 border rounded-lg"
+          placeholder="예: Smart Light 2"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
 
-        <div className="flex justify-between space-x-3">
-          <button className="flex-1 py-2 bg-gray-200 rounded-lg" onClick={onCancel}>
-            취소
-          </button>
+        <button
+          onClick={() => {
+            if (name.trim() !== "") onSubmit(name);
+          }}
+          className="w-full mt-4 py-2 rounded-lg bg-black text-white"
+        >
+          확인
+        </button>
 
-          <button
-            className="flex-1 py-2 bg-black text-white rounded-lg"
-            onClick={() => {
-              if (!name) return;
-              onSubmit(name);
-              setName("");
-            }}
-          >
-            확인
-          </button>
-        </div>
+        <button
+          onClick={onClose}
+          className="w-full mt-2 py-2 rounded-lg bg-gray-200"
+        >
+          취소
+        </button>
       </div>
     </div>
   );

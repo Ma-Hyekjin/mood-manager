@@ -80,6 +80,7 @@ export async function GET() {
     const recentStressIndex = latestMetrics.stress_score;
 
     // 5) 가장 최근 수면의 수면 점수 및 수면 시간 계산
+    // [EDIT] 항상 수면 세션 기반으로 계산 (수면 시간 반영)
     const sleepResult = await calcTodaySleepScore(USER_ID);
     
     let latestSleepScore: number;
@@ -90,9 +91,10 @@ export async function GET() {
       latestSleepScore = sleepResult.score;
       latestSleepDuration = sleepResult.totalMinutes; // 타입 가드로 인해 number로 추론됨
     } else {
-      // 수면 세션이 없는 경우, 가장 최근 raw_periodic의 sleep_score 사용
-      latestSleepScore = latestMetrics.sleep_score;
-      latestSleepDuration = 0; // 수면 시간 없음
+      // 수면 세션이 없는 경우: 수면 점수 0, 수면 시간 0 반환
+      // 단일 raw_periodic의 수면 점수는 의미가 없으므로 사용하지 않음
+      latestSleepScore = 0;
+      latestSleepDuration = 0;
     }
 
     // 6) 응답 반환 (4가지 지표)

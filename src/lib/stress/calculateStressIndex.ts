@@ -8,9 +8,12 @@
  *
  * Inputs:
  *   heart_rate_avg (HR)
+ *   heart_rate_max (HR_max)
+ *   heart_rate_min (HR_min)
  *   hrv_sdnn       (SDNN)
  *   movement_count (MOV)
  *   respiratory_rate_avg (RESP)
+ *   is_fallback    (폴백 데이터 여부)
  *
  * --------------------------------------------
  * 1) 각 지표 → 0~1 스트레스 점수로 정규화
@@ -67,10 +70,14 @@ import { PeriodicRaw } from "@/lib/types/periodic";
 import { clamp } from "./utils";
 
 export function calculateStressIndex(data: PeriodicRaw): number {
+  // [EDIT] 새로운 필드 추가: heart_rate_max, heart_rate_min, is_fallback 활용
   const HR = data.heart_rate_avg ?? 0;
+  const HR_max = data.heart_rate_max ?? 0;
+  const HR_min = data.heart_rate_min ?? 0;
   const SDNN = data.hrv_sdnn ?? 0;
   const MOV = data.movement_count ?? 0;
   const RESP = data.respiratory_rate_avg ?? 0;
+  const isFallback = data.is_fallback ?? false;
 
   // -----------------------------
   // 1) HR 기반 스트레스 (HR 높으면 ↑)
@@ -78,11 +85,22 @@ export function calculateStressIndex(data: PeriodicRaw): number {
   const best_hr = 50;
   const worst_hr = 110;
 
-  const HR_stress = clamp(
+  let HR_stress = clamp(
     (HR - best_hr) / (worst_hr - best_hr),
     0,
     1
   );
+
+  // [EDIT] heart_rate_max를 활용한 급성 스트레스 반영 로직 추가
+  // 평균과 최고값의 가중 평균을 사용하여 급성 스트레스 반영
+  if (HR_max !== undefined) {
+    const max_hr_stress = clamp(
+      (HR_max - best_hr) / (worst_hr - best_hr),
+      0,
+      1
+    );
+    HR_stress = (HR_stress * 0.7 + max_hr_stress * 0.3);
+  }
 
   // -----------------------------
   // 2) SDNN 기반 스트레스 (SDNN 낮으면 ↑)
@@ -127,14 +145,20 @@ export function calculateStressIndex(data: PeriodicRaw): number {
   const w_mov = 0.15;
   const w_resp = 0.05;
 
-  const StressScore_0to1 =
+  let StressScore_0to1 =
     HR_stress * w_hr +
     SDNN_stress * w_sdnn +
     Movement_stress * w_mov +
     Resp_stress * w_resp;
 
+  // [EDIT] 폴백 데이터 보정 로직 추가
+  // 폴백 데이터는 신뢰도가 낮으므로 점수를 약간 낮춤
+  if (isFallback) {
+    StressScore_0to1 = StressScore_0to1 * 0.9;
+  }
+
   // -----------------------------
-  // 6) 최종 스코어 변환 (0~100)
+  // 7) 최종 스코어 변환 (0~100)
   // -----------------------------
   const StressScore = Math.round(StressScore_0to1 * 100);
 

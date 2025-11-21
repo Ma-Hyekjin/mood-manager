@@ -42,7 +42,7 @@ export default function LoginPage() {
 
       if (email === MOCK_EMAIL && password === MOCK_PASSWORD) {
         // 일단 설문을 하지 않은 상태라고 가정
-        router.push("/survey");
+        router.push("/home");
         return;
       }
 

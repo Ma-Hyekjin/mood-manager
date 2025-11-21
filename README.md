@@ -86,6 +86,64 @@ The service analyzes biometric signals collected from the WearOS device (such as
   * **전처리:** 생체/음성 데이터를 유효한 수치형 데이터로 전처리합니다. 이후 사용자 선호도와 날씨 등 외부 데이터를 결합합니다.
   * **AI 추론:** 구조화된 프롬프트를 생성하여 OpenAI Few-shot 및 LangChain RAG를 활용해 상태를 추론합니다.
   * **대시보드:** 최종 결정된 무드를 시각화하고 홈 환경 제어를 시뮬레이션합니다.
+-----
+
+                     ┌──────────────────────────┐
+                     │       Wear OS App        │
+                     │  - Heart Rate / HRV      │
+                     │  - Stress Indicators     │
+                     │  - Audio (WAV Base64)    │
+                     │  - Foreground Services   │
+                     └────────────┬─────────────┘
+                                  │
+                                  ▼
+                     ┌───────────────────────────┐      ┌──────────────────────────┐
+                     │     Firebase Firestore    │      │      ML Python Server    │
+                     │  users/{uid}/raw_periodic │      │  - Fetch Firestore audio │     
+                     │  users/{uid}/raw_events   │────▶ │  - Laughter/Sigh detect  │
+                     │ (Realtime Sync Bridge)    │      │  - POST result → WebApp  │
+                     └────────────┬──────────────┘      └────────────┬─────────────┘
+                                  │                                  │
+                                  │  (biometric)                     │
+                                  ▼                                  │
+            ┌────────────────────────────────────────────────┐       │ 
+            │                 Next.js Web App                │       │
+            │  (Core Processing & Aggregation Layer)         │       │
+            │                                                │       │
+            │  - Fetch biometric (Firestore raw_periodic)    │       │
+            │  - Receive ML classification result (POST)     │────────   
+            │  - Merge: biometric + audio + prefs + weather  │
+            │  - Build prompt for OpenAI (Few-shot + RAG)    │
+            │                                                │
+            └─────────────────────┬──────────────────────────┘
+                                  │ prompt
+                                  ▼
+                ┌──────────────────────────────────┐
+                │     OpenAI Few-shot + RAG        │
+                │   - Mood inference               │
+                │   - Lighting / Scent / Sound     │
+                │   - Output JSON mood profile     │
+                └─────────────────┬────────────────┘
+                                  │
+                                  │  final mood result
+                                  ▼
+          ┌──────────────────────────────────────────────┐
+          │          Mood Output (WebApp UI)             │
+          │  - Mood Dashboard                            │
+          │  - Dynamic Theme Color                       │
+          │  - Music Player (Recommended)                │
+          │  - Scent Level Controller                    │
+          │  - Device Grid (2×N expand cards)            │
+          └───────────────────────┬──────────────────────┘
+                                  │
+                                  │  store final result
+                                  ▼
+                       ┌──────────────────────────┐
+                       │        MySQL DB          │
+                       │  - Mood history          │
+                       │  - User state snapshots  │
+                       │  - Device states log     │
+                       └──────────────────────────┘
 
 -----
 

@@ -27,32 +27,28 @@
  *   → 수면 세션(여러 샘플)의 평균 점수 등은 별도 함수로 확장 예정.
  * - [EDIT] weather 데이터 추가: 전처리 파이프라인에 날씨 정보 포함
  */
-
 import { PeriodicRaw } from "@/lib/types/periodic";
-import { calculateSleepScore } from "@/lib/sleep";
 import { calculateStressIndex } from "@/lib/stress";
 import type { WeatherData } from "@/lib/weather/fetchWeather";
+import { calculateDailySleepScore } from "../sleep/calculateDailySleepScore";
 
 export interface ProcessedMetrics {
-  sleep_score: number;   // 0~100
-  stress_score: number;  // 0~100
-  weather?: WeatherData; // [EDIT] 날씨 데이터 추가 (optional)
+  stress_score: number;    
+  sleep_score?: number;
+  weather?: WeatherData;   
+  preferences?: any;
+  laugh_count?: number;
+  sigh_count?: number;
 }
 
 export function preprocessPeriodicSample(
-  raw: PeriodicRaw,
-  weather?: WeatherData
+  raw: PeriodicRaw
 ): ProcessedMetrics {
-  // 수면 점수 계산 (0~100)
-  const sleep_score = calculateSleepScore(raw);
 
-  // 스트레스 점수 계산 (0~100)
+  // ✔ 스트레스 지수만 계산 (raw 단위)
   const stress_score = calculateStressIndex(raw);
 
   return {
-    sleep_score,
     stress_score,
-    // [EDIT] weather 데이터 포함 (있는 경우에만)
-    ...(weather && { weather }),
   };
 }

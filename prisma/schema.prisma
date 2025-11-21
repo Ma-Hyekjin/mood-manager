@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -42,6 +42,32 @@ enum RecType {
   proactive
 }
 
+enum FragranceType {
+  musk
+  aromatic
+  woody
+  citrus
+  honey
+  green
+  dry
+  leathery
+  marine
+  spicy
+  floral
+  powdery
+}
+
+enum SoundGenre {
+  rain
+  nature
+  white_noise
+  instrumental
+  piano
+  lofi
+  chill
+}
+
+
 ///// MODELS /////
 
 
@@ -62,7 +88,7 @@ model User {
   devices        Device[]
   presets        Preset[]
   bio_data       BioData[]
-  surveys        Survey[]
+  surveys        UserPreferences[]
   recommendations AIRecommendation[]
   routines       MoodRoutine[]
   periodic_raw   PeriodicRaw[]
@@ -203,17 +229,25 @@ model Preset {
 //  SURVEY / ROUTINE / AI
 //////////////////////////
 
-model Survey {
-  survey_id       Int      @id @default(autoincrement())
-  user_id         Int
-  fragrance_pref  Json?
-  light_pref      Json?
-  sound_pref      Json?
-  mood_type_pref  String?
-  created_at      DateTime @default(now())
+model UserPreferences {
+  id                    Int      @id @default(autoincrement())
+  userId                Int      @unique
+  fragrance_top1        String?
+  fragrance_top2        String?
+  fragrance_top3        String?
+  preferred_light_R     Int?
+  preferred_light_G     Int?
+  preferred_light_B     Int?
+  preferred_brightness  Float? 
+  sound_genre_top1      String?
+  sound_genre_top2      String?
+  sound_genre_top3      String?
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
 
-  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [user_id])
 }
+
 
 model MoodRoutine {
   routine_id Int     @id @default(autoincrement())

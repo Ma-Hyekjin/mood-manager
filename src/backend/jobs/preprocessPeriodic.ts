@@ -65,10 +65,10 @@ export async function handleNewPeriodicDocument(
     }
 
     // 1) 전처리 엔진 호출 → 수면/스트레스 점수 계산 (날씨 데이터 포함)
-    const metrics = preprocessPeriodicSample(raw, weather);
+    const metrics = preprocessPeriodicSample(raw);
 
     // 2) 최신 전처리 결과를 캐시에 저장
-    setProcessedMetrics(metrics.sleep_score, metrics.stress_score);
+    setProcessedMetrics(metrics.sleep_score ?? 0, metrics.stress_score);
 
     // (디버깅/로그용)
     // eslint-disable-next-line no-console

@@ -9,6 +9,8 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+/prisma/migrations/
+/prisma/erd.svg
 
 # testing
 /coverage

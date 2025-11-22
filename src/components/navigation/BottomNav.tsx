@@ -18,6 +18,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { FaHome, FaPalette, FaUser } from "react-icons/fa";
+import React from "react";
 
 export default function BottomNav() {
   const path = usePathname();
@@ -25,15 +27,15 @@ export default function BottomNav() {
   return (
     <div className="fixed bottom-0 left-0 right-0 flex justify-center">
       <div className="w-full max-w-[375px] bg-white border-t flex justify-around py-2">
-        {navItem("home", "🏠", "/home", path)}
-        {navItem("mood", "🎨", "/mood", path)}
-        {navItem("mypage", "👤", "/mypage", path)}
+        {navItem("MYPAGE", <FaUser />, "/mypage", path)}
+        {navItem("HOME", <FaHome />, "/home", path)}
+        {navItem("MOOD", <FaPalette />, "/mood", path)}
       </div>
     </div>
   );
 }
 
-function navItem(label: string, icon: string, href: string, path: string) {
+function navItem(label: string, icon: React.ReactNode, href: string, path: string) {
   const active = path.startsWith(href);
 
   return (

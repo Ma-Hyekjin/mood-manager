@@ -186,29 +186,63 @@ The service analyzes biometric signals collected from the WearOS device (such as
 ### Directory Map
 
 ```bash
-src/app/
- ├── (auth)/login       # Authentication & Session Handling
- ├── (auth)/register    # User Registration
- ├── (main)/home        # Main Dashboard & Mood Visualization
- ├── (main)/mypage      # User Profile & Settings
-components/
- ├── ui/                # Reusable UI Components (Shadcn/Tailwind)
- ├── navigation/        # Sidebar & Bottom Nav
-lib/
- ├── firebase.ts        # Firebase Configuration
- ├── prisma.ts          # DB ORM
- ├── util.ts            # Utility Functions
- ├── aws.ts             # AWS Integration
- ├── openai.ts          # AI Prompting & RAG Logic
-types/                  # TypeScript Definitions
-prisma/                 # Schema & Migrations
+mood-manager/
+ ├── docs/                      # Documentation
+ │   ├── API_SPEC.md           # API Specification
+ │   ├── API_ROUTES.md         # API Routes Documentation
+ │   ├── BACKEND_INTEGRATION.md # Backend Integration Guide
+ │   ├── MOOD_GENERATION_LOGIC.md # Mood Generation Logic
+ │   ├── PAGE_ROLES.md         # Page Roles Documentation
+ │   └── RESPONSIVE_DESIGN.md  # Responsive Design Guide
+ ├── public/                    # Static Assets
+ │   ├── icons/                # Icon files
+ │   └── logos/                # Logo files
+ └── src/
+     ├── app/                   # Next.js App Router
+     │   ├── (auth)/            # Authentication Routes
+     │   │   ├── login/         # Login Page
+     │   │   └── register/      # Registration Page
+     │   ├── (main)/            # Protected Routes
+     │   │   ├── home/          # Home Dashboard
+     │   │   │   ├── components/ # Page-specific Components
+     │   │   │   │   ├── Device/ # Device Components
+     │   │   │   │   ├── MoodDashboard/ # Mood Dashboard
+     │   │   │   │   └── SurveyOverlay/ # Survey Overlay
+     │   │   │   └── page.tsx   # Home Page
+     │   │   └── mypage/        # User Profile Page
+     │   ├── api/               # API Routes
+     │   │   ├── auth/          # Authentication APIs
+     │   │   ├── devices/       # Device Management APIs
+     │   │   ├── moods/         # Mood Management APIs
+     │   │   └── ai/            # AI-related APIs
+     │   ├── layout.tsx         # Root Layout
+     │   └── page.tsx           # Splash Page
+     ├── components/             # Shared Components
+     │   ├── navigation/        # Navigation Components
+     │   └── ui/                # Reusable UI Components
+     ├── lib/                    # Utilities & Configurations
+     │   ├── firebase.ts        # Firebase Configuration
+     │   ├── prisma.ts          # Database ORM
+     │   ├── utils.ts           # Utility Functions
+     │   ├── aws.ts             # AWS Integration
+     │   └── openai.ts          # AI Prompting & RAG Logic
+     ├── types/                  # TypeScript Type Definitions
+     │   ├── device.ts          # Device Types
+     │   └── mood.ts            # Mood Types
+     ├── hooks/                  # Custom React Hooks
+     ├── styles/                 # Global Styles
+     └── prisma/                 # Prisma Schema & Migrations
+         └── schema.prisma      # Database Schema
 ```
 
 ### Key Features
 
-  * **Login System:** Email/Password authentication with error handling, enter-to-submit support, and session-based access control. Supports mock/real API switching.
-  * **Survey Flow:** Initial user preference collection (skippable). Defaults are applied if skipped.
-  * **Home Dashboard:** Displays the inferred mood, offering environment presets (10 moods, 12 scents, 8 lighting colors) and a device control grid.
+  * **Login System:** Email/Password authentication with rate limiting (5 failed attempts → 15min lock), enter-to-submit support, session-based access control, and social login (Google, Kakao, Naver). Supports mock/real API switching.
+  * **Registration System:** Complete registration form with Family Name, Name, Date of Birth, Gender fields. Real-time validation with visual feedback (email format, password strength, password match). Auto-formatting for date input (yyyy.mm.dd). Automatic session creation and redirect to home page.
+  * **Survey Flow:** Initial user preference collection via popup overlay on home page (skippable). Defaults are applied if skipped. Survey status checked on home page load.
+  * **Home Dashboard:** Displays the inferred mood, offering environment presets (10 moods, 12 scents, 8 lighting colors) and a device control grid (2×N expandable cards). Full device management (add, delete, power toggle, scent level control).
+  * **Mood Management:** Complete mood control system with full change, scent change, song change, and color change capabilities. Real-time device state updates.
+  * **API System:** All API routes implemented with mock responses. Ready for backend integration (code commented, ready to uncomment).
 
 -----
 
@@ -225,6 +259,13 @@ prisma/                 # Schema & Migrations
   * [x] Firestore Upload Pipeline Completion
   * [x] WebApp App Router Structure Setup
   * [x] Login Page & Session Management Implementation
+  * [x] Registration Page Implementation (Family Name, Name, Date of Birth, Gender fields)
+  * [x] Email & Password Validation with Visual Feedback
+  * [x] Rate Limiting for Login (5 failed attempts → 15min lock)
+  * [x] Social Login Integration (Google, Kakao, Naver via NextAuth)
+  * [x] API Routes Structure Complete (Auth, Devices, Moods)
+  * [x] Mock System Implementation (Frontend & API Routes)
+  * [x] Project Structure Refactoring (Standard Next.js structure)
 
 ### **P2 – Data Integration & Mood Pipeline**
 
@@ -235,14 +276,23 @@ prisma/                 # Schema & Migrations
   * [ ] ML Result Integration with WebApp
   * [ ] WebApp Data Preprocessing (Biometric + ML Results + Preferences + Weather)
   * [ ] OpenAI Few-shot + LangChain RAG Mood Selection Pipeline
-  * [ ] Survey UI & Preference Storage Logic
-  * [ ] Home Dashboard v1 (Mood Display, Lighting/Scent/Sound Indicators)
+  * [x] Survey UI & Preference Storage Logic (SurveyOverlay component, home page popup)
+  * [x] Home Dashboard v1 (Mood Display, Lighting/Scent/Sound Indicators)
+  * [x] Device Management System (Add, Delete, Power Toggle, Scent Level Control)
+  * [x] Mood Management System (Full Change, Scent Change, Song Change, Color Change)
+  * [x] API Routes Implementation (All endpoints with mock responses)
+  * [x] Backend API Integration Preparation (All routes ready for backend connection)
+  * [x] Mood Generation Logic Documentation
 
 ### **P3 – Enhancement & Release**
 
+  * [x] Mock System Complete (Frontend & API Routes)
+  * [x] API Validation Complete (All endpoints verified)
+  * [x] Responsive Design Implementation (375px width optimized)
   * [ ] Mood Selection v2 (LLM Quality Improvement + Rule-based Hybrid)
   * [ ] UI Polish & Mood Library Expansion
   * [ ] Device Simulation Upgrades
+  * [ ] Backend Server Integration (Replace mock with real API calls)
   * [ ] AWS Deployment (Amplify)
   * [ ] End-to-End Testing (WearOS → Firestore → ML → WebApp → OpenAI)
 
@@ -268,6 +318,56 @@ prisma/                 # Schema & Migrations
       * Firebase Configuration Keys
       * NextAuth Providers (Google, Kakao, Naver)
       * OpenAI API Key
+      * Backend URL (optional, for backend integration): `BACKEND_URL` or `NEXT_PUBLIC_BACKEND_URL`
+
+-----
+
+## Backend Integration Guide
+
+### Overview
+
+The frontend Next.js API routes act as a proxy to the backend server. All API routes are prepared with mock responses and can be switched to real backend calls by uncommenting the backend integration code.
+
+### Environment Variables
+
+```env
+BACKEND_URL=http://localhost:8000
+# or
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+```
+
+### Backend API Endpoints Required
+
+The backend server should implement the following APIs (see `docs/API_SPEC.md` for detailed specifications):
+
+- **Authentication APIs**: Register, Login, Survey Status, Survey Submit, Survey Skip
+- **Device Management APIs**: List, Create, Delete, Power Toggle, Scent Level
+- **Mood Management APIs**: Get Current, Update Full, Update Scent, Update Song, Update Color
+
+### Session Management
+
+- NextAuth sessions are managed via cookies
+- Cookies are automatically forwarded to the backend server
+- Alternatively, JWT tokens can be used via Authorization header
+
+### Switching from Mock to Real API
+
+1. Set `BACKEND_URL` environment variable
+2. Uncomment backend integration code in API route files
+3. Remove mock response code
+4. Test API connectivity
+
+See `docs/API_VALIDATION.md` for detailed verification results.
+
+-----
+
+## Documentation
+
+- `docs/API_SPEC.md` - Complete API specification (15 endpoints)
+- `docs/API_ROUTES.md` - API routes structure guide
+- `docs/API_VALIDATION.md` - API validation report
+- `docs/MOOD_GENERATION_LOGIC.md` - Detailed mood generation logic
+- `docs/RESPONSIVE_DESIGN.md` - Responsive design guide
 
 -----
 

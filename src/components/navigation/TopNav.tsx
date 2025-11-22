@@ -15,13 +15,13 @@ import Image from "next/image";
 
 export default function TopNav() {
   return (
-    <div className="w-full h-14 flex items-center justify-center border-b bg-white">
+    <div className="w-full h-10 flex items-center justify-center border-b bg-white">
       <Image
         src="/logos/mood-manager-logo.svg"
         alt="Mood Manager"
-        width={150}
-        height={28}
-        className="h-7 w-auto"
+        width={36}
+        height={36}
+        className="w-9 h-9"
         priority
       />
     </div>

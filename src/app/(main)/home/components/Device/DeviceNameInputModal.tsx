@@ -3,11 +3,10 @@
 // ======================================================
 
 /*
-  [DeviceNameInputModal 역할 정리]
+  [DeviceNameInputModal 역할]
 
-  - 디바이스 타입 선택 후, 사용자가 디바이스의 이름을 입력하는 모달
-  - 이름 입력 후 onSubmit(name) 호출해 DeviceGrid에서 디바이스 생성 가능
-  - 닫기 버튼으로 onClose 호출
+  - 타입 선택 후 이름 지정
+  - 입력 완료 시 onSubmit(name)
 */
 
 "use client";
@@ -33,7 +32,7 @@ export default function DeviceNameInputModal({
         <input
           type="text"
           className="w-full p-2 border rounded-lg"
-          placeholder="예: Smart Light 2"
+          placeholder="Smart Light 2"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />

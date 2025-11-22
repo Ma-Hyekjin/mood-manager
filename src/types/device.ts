@@ -1,5 +1,5 @@
 /**
- * File: src/app/(main)/home/types/device.ts
+ * File: src/types/device.ts
  *
  * Device Type Definition
  */
@@ -24,3 +24,4 @@ export interface Device {
     nowPlaying?: string; // speaker now playing info
   };
 }
+

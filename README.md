@@ -11,7 +11,7 @@ API Docs: [Mood Manager – API Specification v1](https://www.notion.so/Mood-Man
 
 ## Overview
 
-**Mood Manager** is the core service that operates a virtual output device called the **Manager**, which is capable of producing and controlling lighting, scents, and sound within the simulated home environment. The entire system pipeline is designed under the assumption that this Manager device exists as the final output layer of the project.
+\*\*Mood Manager\*\* is the core service that operates a virtual output device called the **Manager**, which is capable of producing and controlling lighting, scents, and sound within the simulated home environment. The entire system pipeline is designed under the assumption that this Manager device exists as the final output layer of the project.
 
 The service analyzes biometric signals collected from the WearOS device (such as HRV and stress indicators), audio events (laughter/sigh detection), user preferences, and external factors such as weather. Using these combined inputs, the system infers a personalized mood state and drives the Manager device accordingly. This platform was developed as part of the Hanyang University Software Engineering course in collaboration with LG Electronics, following the pipeline: **WearOS → Firebase → ML Analysis Server → Next.js WebApp → OpenAI (Few-shot + RAG)**.
 

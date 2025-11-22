@@ -3,15 +3,15 @@
 // ======================================================
 
 /*
-  [DeviceTypeSelectModal 역할 정리]
+  [DeviceTypeSelectModal 역할]
 
-  - 새 디바이스 추가 시 어떤 디바이스 타입인지 선택하는 모달
-  - Manager / Light / Scent / Speaker 선택 가능
-  - 클릭 시 선택한 type을 부모(onSelect)로 전달
-  - 배경 클릭 시 닫히지 않음 (명확한 인터랙션 보장)
+  - 새 디바이스 추가 시 타입 선택
+  - manager / light / scent / speaker
 */
 
 "use client";
+
+import { FaPalette, FaLightbulb, FaSprayCan, FaVolumeUp } from "react-icons/fa";
 
 export default function DeviceTypeSelectModal({
   onSelect,
@@ -21,10 +21,10 @@ export default function DeviceTypeSelectModal({
   onClose: () => void;
 }) {
   const types = [
-    { id: "manager", label: "Manager", icon: "🌈" },
-    { id: "light", label: "Smart Light", icon: "💡" },
-    { id: "scent", label: "Scent Diffuser", icon: "🧴" },
-    { id: "speaker", label: "Speaker", icon: "🔊" },
+    { id: "manager", label: "Manager", icon: <FaPalette className="text-purple-500 text-3xl" /> },
+    { id: "light", label: "Smart Light", icon: <FaLightbulb className="text-yellow-500 text-3xl" /> },
+    { id: "scent", label: "Scent Diffuser", icon: <FaSprayCan className="text-green-500 text-3xl" /> },
+    { id: "speaker", label: "Speaker", icon: <FaVolumeUp className="text-blue-500 text-3xl" /> },
   ];
 
   return (

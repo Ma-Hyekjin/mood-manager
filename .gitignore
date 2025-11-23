@@ -39,3 +39,19 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Android / Gradle
+**/local.properties
+**/.gradle/
+**/build/
+**/.idea/
+**/.kotlin/
+*.iml
+
+# Firebase (민감한 정보 포함)
+**/google-services.json
+**/GoogleService-Info.plist
+
+# macOS
+.DS_Store
+**/.DS_Store

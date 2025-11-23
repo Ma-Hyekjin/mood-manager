@@ -8,7 +8,8 @@
   - 확장된 디바이스 카드 (col-span-2)
   - smallCard 클릭 → expanded 형태로 변경
   - 카드 전체를 클릭하면 다시 접힘(onClose)
-  - Power On/Off 버튼 클릭 시 전원 토글 (onTogglePower)
+  - 이름 변경 기능 (인라인 편집)
+  - Power On/Off 버튼 클릭 시 전원 토글 (onTogglePower) - 전원 아이콘 사용
   - 오른쪽 아래 "Delete" 버튼 클릭 시 디바이스 삭제(onDelete)
   - 디바이스 타입에 따라 상태 설명문 다르게 표시
   - Manager는 다른 디바이스보다 긴 상태 설명
@@ -17,51 +18,114 @@
 "use client";
 
 import { Device } from "@/types/device";
-import { ReactNode } from "react";
+import { type Mood } from "@/types/mood";
+import { ReactNode, useState } from "react";
 import { FaPalette, FaLightbulb, FaSprayCan, FaVolumeUp, FaCog } from "react-icons/fa";
+import { Power } from "lucide-react";
+import { blendWithWhite } from "@/lib/utils";
 
 export default function DeviceCardExpanded({
   device,
+  currentMood,
   onClose,
   onDelete,
   onTogglePower,
+  onUpdateName,
 }: {
   device: Device;
+  currentMood?: Mood;
   onClose: () => void;
   onDelete: () => void;
   onTogglePower: () => void;
+  onUpdateName: (name: string) => void;
 }) {
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState(device.name);
+
+  // 무드 컬러를 흰색에 가깝게 블렌딩 (90% 흰색 + 10% 무드 컬러)
+  const backgroundColor = currentMood
+    ? blendWithWhite(currentMood.color, 0.9)
+    : "rgb(255, 255, 255)";
+
+  const handleNameSubmit = () => {
+    if (editedName.trim() !== "" && editedName !== device.name) {
+      onUpdateName(editedName.trim());
+    } else {
+      setEditedName(device.name);
+    }
+    setIsEditingName(false);
+  };
+
+  const handleNameCancel = () => {
+    setEditedName(device.name);
+    setIsEditingName(false);
+  };
+
   return (
     <div
-      className={`p-4 rounded-xl shadow-md border relative animate-expand cursor-pointer transition-all min-h-[200px]
-        ${device.power ? "bg-white" : "bg-gray-200 opacity-60"}
+      className={`p-4 rounded-xl shadow-md border relative animate-expand cursor-pointer transition-all min-h-[200px] backdrop-blur-sm
+        ${device.power ? "" : "opacity-60"}
       `}
+      style={{
+        backgroundColor: device.power
+          ? `${backgroundColor}CC` // 80% 투명도 (CC = 204/255)
+          : "rgba(200, 200, 200, 0.8)",
+      }}
       onClick={onClose}
     >
       {/* 상단: 아이콘 + 이름 + 배터리 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="text-3xl">{getIcon(device.type)}</div>
-          <div className="text-lg font-semibold">{device.name}</div>
+          {isEditingName ? (
+            <input
+              type="text"
+              value={editedName}
+              onChange={(e) => setEditedName(e.target.value)}
+              onBlur={handleNameSubmit}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleNameSubmit();
+                } else if (e.key === "Escape") {
+                  handleNameCancel();
+                }
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="text-lg font-semibold bg-white border border-gray-300 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-black"
+              autoFocus
+            />
+          ) : (
+            <div
+              className="text-lg font-semibold cursor-text hover:underline"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsEditingName(true);
+              }}
+              title="Click to edit name"
+            >
+              {device.name}
+            </div>
+          )}
         </div>
 
         <div className="text-sm font-medium">{device.battery}%</div>
       </div>
 
-      {/* 전원 버튼 */}
+      {/* 전원 버튼 - 아이콘 사용 */}
       <div className="flex justify-center mt-4">
         <button
           onClick={(e) => {
             e.stopPropagation(); // 부모 클릭(onClose) 방지
             onTogglePower();
           }}
-          className={`px-6 py-2 rounded-full transition-all ${
+          className={`p-3 rounded-full transition-all ${
             device.power
-              ? "bg-black text-white hover:bg-gray-800"
+              ? "bg-green-500 text-white hover:bg-green-600"
               : "bg-gray-400 text-white hover:bg-gray-500"
           }`}
+          title={device.power ? "Power On" : "Power Off"}
         >
-          {device.power ? "Power Off" : "Power On"}
+          <Power size={24} />
         </button>
       </div>
 

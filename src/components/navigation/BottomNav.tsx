@@ -25,8 +25,8 @@ export default function BottomNav() {
   const path = usePathname();
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 flex justify-center">
-      <div className="w-full max-w-[375px] bg-white border-t flex justify-around py-2">
+    <div className="fixed bottom-0 left-0 right-0 flex justify-center z-30">
+      <div className="w-full max-w-[375px] backdrop-blur-sm border-t border-gray-200 flex justify-around py-2">
         {navItem("MYPAGE", <FaUser />, "/mypage", path)}
         {navItem("HOME", <FaHome />, "/home", path)}
         {navItem("MOOD", <FaPalette />, "/mood", path)}
@@ -38,15 +38,33 @@ export default function BottomNav() {
 function navItem(label: string, icon: React.ReactNode, href: string, path: string) {
   const active = path.startsWith(href);
 
+  // 아이콘별 색상 매핑
+  const getIconColor = (label: string, isActive: boolean) => {
+    if (isActive) {
+      switch (label) {
+        case "HOME":
+          return "text-blue-600";
+        case "MOOD":
+          return "text-purple-600";
+        case "MYPAGE":
+          return "text-gray-700";
+        default:
+          return "text-gray-700";
+      }
+    } else {
+      return "text-gray-400";
+    }
+  };
+
   return (
     <Link
       href={href}
-      className={`flex flex-col items-center text-xs ${
-        active ? "text-black font-semibold" : "text-gray-500"
+      className={`flex flex-col items-center text-xs transition-colors ${
+        active ? "font-semibold" : ""
       }`}
     >
-      <div className="text-lg">{icon}</div>
-      {label}
+      <div className={`text-lg ${getIconColor(label, active)}`}>{icon}</div>
+      <span className={active ? "text-gray-700" : "text-gray-500"}>{label}</span>
     </Link>
   );
 }

@@ -15,24 +15,38 @@
 "use client";
 
 import { Device } from "@/types/device";
+import { type Mood } from "@/types/mood";
 import { FaBatteryFull, FaBatteryHalf, FaBatteryEmpty, FaPalette, FaLightbulb, FaSprayCan, FaVolumeUp, FaCog } from "react-icons/fa";
 import { ReactNode } from "react";
+import { blendWithWhite } from "@/lib/utils";
 
 export default function DeviceCardSmall({
   device,
+  currentMood,
   onClick,
 }: {
   device: Device;
+  currentMood?: Mood;
   onClick: () => void;
 }) {
+  // 무드 컬러를 흰색에 가깝게 블렌딩 (90% 흰색 + 10% 무드 컬러)
+  const backgroundColor = currentMood
+    ? blendWithWhite(currentMood.color, 0.9)
+    : "rgb(255, 255, 255)";
+
   return (
     <div
       onClick={onClick}
-      className={`h-[100px] p-3 rounded-xl shadow-sm border cursor-pointer transition-all flex flex-col ${
+      className={`h-[100px] p-3 rounded-xl shadow-sm border cursor-pointer transition-all flex flex-col backdrop-blur-sm ${
         device.type === "manager" ? "justify-between" : "justify-start gap-2"
       }
-        ${device.power ? "bg-white" : "bg-gray-200 opacity-60"}
+        ${device.power ? "" : "opacity-60"}
       `}
+      style={{
+        backgroundColor: device.power
+          ? `${backgroundColor}CC` // 80% 투명도 (CC = 204/255)
+          : "rgba(200, 200, 200, 0.8)",
+      }}
     >
       {/* 상단: 아이콘 - 이름 - 배터리 일렬 배치 */}
       <div className="flex items-center gap-2">

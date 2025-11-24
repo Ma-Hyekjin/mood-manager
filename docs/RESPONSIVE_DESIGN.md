@@ -297,5 +297,11 @@ import { GiDrippingHoney } from "react-icons/gi";
 
 <GiDrippingHoney size={32} color="#FFE881" /> //기본
 <GiDrippingHoney className="w-8 h-8" color="#FFE881" /> //Tailwind CSS
+
+//6.Green - 새싹
+import { LuSprout } from "react-icons/lu";
+
+<LuSprout size={32} color="#15E638" /> //기본
+<LuSprout className="w-8 h-8" color="#15E638" /> //Tailwind CSS
 ```
 

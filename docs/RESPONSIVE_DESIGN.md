@@ -291,5 +291,11 @@ import { PiOrangeDuotone } from "react-icons/pi";
 
 <PiOrangeDuotone size={32} color="#FF6600" /> //기본
 <PiOrangeDuotone className="w-8 h-8" color="#FF6600" /> //Tailwind CSS
+
+//5.Honey - 벌집
+import { GiDrippingHoney } from "react-icons/gi";
+
+<GiDrippingHoney size={32} color="#FFE881" /> //기본
+<GiDrippingHoney className="w-8 h-8" color="#FFE881" /> //Tailwind CSS
 ```
 

@@ -333,5 +333,11 @@ import { GiRose } from "react-icons/gi";
 
 <GiRose size={32} color="#E627DA" /> //기본
 <GiRose className="w-8 h-8" color="#E627DA" /> // Tailwind CSS
+
+//12.Powdery - 아기젖병
+import { GiBabyBottle } from "react-icons/gi";
+
+<GiBabyBottle size={32} color="#FFFFF0" /> //기본
+<GiBabyBottle className="w-8 h-8" color="#FFFFF0" /> //Tailwind CSS
 ```
 

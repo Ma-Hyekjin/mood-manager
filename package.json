@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
+    "build:amplify": "next build",
     "start": "next start",
     "lint": "eslint"
   },

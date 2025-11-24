@@ -15,12 +15,12 @@
   - 사전 정의된 이름이 아닌, 무드 속성에 맞는 새로운 이름 생성
 */
 
-import OpenAI from "openai";
+// import OpenAI from "openai"; // TODO: 백엔드 API 연동 시 주석 해제 및 패키지 설치 필요
 
 // OpenAI 클라이언트 초기화
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// const openai = new OpenAI({
+//   apiKey: process.env.OPENAI_API_KEY,
+// });
 
 /**
  * 무드 이름 생성 (Few-shot)
@@ -87,30 +87,34 @@ export async function inferMoodName(moodAttributes: {
 입력: ${JSON.stringify(moodAttributes)}
 출력: (무드 이름만 출력하세요, 예: "Bright Sky", "Blooming Love", "Gentle Rain" 등. 무드의 특성(음악, 색상, 향)을 반영한 자연스럽고 시적인 이름을 생성하세요)`;
 
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // 비용 효율적인 모델 사용
-      messages: [
-        {
-          role: "system",
-          content: "당신은 무드 속성(음악, 조명색, 향, 주기)을 분석하여 해당 무드에 맞는 창의적이고 시적인 이름을 생성하는 전문가입니다. 무드의 특성을 반영한 자연스러운 이름을 생성하세요. 사전 정의된 이름이 아닌, 무드 속성에 맞는 새로운 이름을 생성합니다.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.3, // 낮은 temperature로 일관된 응답
-      max_tokens: 20, // 무드 이름만 필요하므로 짧게
-    });
-
-    const moodName = response.choices[0]?.message?.content?.trim() || "Gentle Breeze";
-    return moodName;
-  } catch (error) {
-    console.error("OpenAI API Error:", error);
-    // 에러 발생 시 기본 무드 반환
-    return "Gentle Breeze";
-  }
+  // TODO: 백엔드 API 연동 시 주석 해제
+  // try {
+  //   const response = await openai.chat.completions.create({
+  //     model: "gpt-4o-mini", // 비용 효율적인 모델 사용
+  //     messages: [
+  //       {
+  //         role: "system",
+  //         content: "당신은 무드 속성(음악, 조명색, 향, 주기)을 분석하여 해당 무드에 맞는 창의적이고 시적인 이름을 생성하는 전문가입니다. 무드의 특성을 반영한 자연스러운 이름을 생성하세요. 사전 정의된 이름이 아닌, 무드 속성에 맞는 새로운 이름을 생성합니다.",
+  //       },
+  //       {
+  //         role: "user",
+  //         content: prompt,
+  //       },
+  //     ],
+  //     temperature: 0.3, // 낮은 temperature로 일관된 응답
+  //     max_tokens: 20, // 무드 이름만 필요하므로 짧게
+  //   });
+  //
+  //   const moodName = response.choices[0]?.message?.content?.trim() || "Gentle Breeze";
+  //   return moodName;
+  // } catch (error) {
+  //   console.error("OpenAI API Error:", error);
+  //   // 에러 발생 시 기본 무드 반환
+  //   return "Gentle Breeze";
+  // }
+  
+  // 목업: 기본 무드 이름 반환
+  return "Gentle Breeze";
 }
 
 /**
@@ -144,33 +148,37 @@ export async function inferMoodNameWithJSONMode(moodAttributes: {
 예시 3: { "music": { "title": "Calm Ocean", "tempo": "moderate" }, "lighting": { "color": "#87CEEB" }, "scent": { "type": "Green" } } → "Gentle Rain"
 `;
 
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "당신은 무드 속성을 분석하여 창의적이고 시적인 무드 이름을 생성하는 전문가입니다. JSON 형식으로 응답하세요.",
-        },
-        {
-          role: "user",
-          content: `${fewShotExamples}\n\n다음 무드 속성을 기반으로 무드 이름을 생성하세요: ${JSON.stringify(moodAttributes)}`,
-        },
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.7, // 창의성을 위해 약간 높게 설정
-      max_tokens: 50,
-    });
-
-    const content = response.choices[0]?.message?.content;
-    if (content) {
-      const parsed = JSON.parse(content);
-      return parsed.moodName || "Gentle Breeze";
-    }
-
-    return "Gentle Breeze";
-  } catch (error) {
-    console.error("OpenAI API Error:", error);
-    return "Gentle Breeze";
-  }
+  // TODO: 백엔드 API 연동 시 주석 해제
+  // try {
+  //   const response = await openai.chat.completions.create({
+  //     model: "gpt-4o-mini",
+  //     messages: [
+  //       {
+  //         role: "system",
+  //         content: "당신은 무드 속성을 분석하여 창의적이고 시적인 무드 이름을 생성하는 전문가입니다. JSON 형식으로 응답하세요.",
+  //       },
+  //       {
+  //         role: "user",
+  //         content: `${fewShotExamples}\n\n다음 무드 속성을 기반으로 무드 이름을 생성하세요: ${JSON.stringify(moodAttributes)}`,
+  //       },
+  //     ],
+  //     response_format: { type: "json_object" },
+  //     temperature: 0.7, // 창의성을 위해 약간 높게 설정
+  //     max_tokens: 50,
+  //   });
+  //
+  //   const content = response.choices[0]?.message?.content;
+  //   if (content) {
+  //     const parsed = JSON.parse(content);
+  //     return parsed.moodName || "Gentle Breeze";
+  //   }
+  //
+  //   return "Gentle Breeze";
+  // } catch (error) {
+  //   console.error("OpenAI API Error:", error);
+  //   return "Gentle Breeze";
+  // }
+  
+  // 목업: 기본 무드 이름 반환
+  return "Gentle Breeze";
 }

@@ -257,7 +257,7 @@ export default function ScentBackground({
   className = "",
 }: ScentBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | undefined>(undefined);
   const particlesRef = useRef<ScentParticle[]>([]);
   const [particleCount, setParticleCount] = useState(0);
 

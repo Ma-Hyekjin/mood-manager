@@ -16,7 +16,6 @@
 ### API 관련
 - **[API_SPEC.md](./API_SPEC.md)**: 전체 API 명세서 (21개 엔드포인트)
 - **[API_ROUTES.md](./API_ROUTES.md)**: Next.js API Routes 구조 및 구현 가이드
-- **[API_ARCHITECTURE_COMPARISON.md](./API_ARCHITECTURE_COMPARISON.md)**: Next.js API Routes 채택 결정
 
 ### 프로젝트 문서
 - **[TODO.md](./TODO.md)**: 현재 해야 할 일 및 작업 우선순위
@@ -25,6 +24,9 @@
 
 ### 디자인 가이드
 - **[RESPONSIVE_DESIGN.md](./RESPONSIVE_DESIGN.md)**: 반응형 디자인 가이드 (375px 고정 너비)
+
+### 설치 및 실행
+- **[SETUP_GUIDE.md](./SETUP_GUIDE.md)**: 프로젝트 설치 및 실행 가이드 (버전 정보, 문제 해결 포함)
 
 ---
 
@@ -39,7 +41,7 @@
 
 ### 백엔드 개발자
 1. **API 명세**: `API_SPEC.md` - 모든 API 엔드포인트 명세
-2. **아키텍처**: `API_ARCHITECTURE_COMPARISON.md` - 서버 구조 선택
+2. **API Routes 구조**: `API_ROUTES.md` - Next.js API Routes 구조
 3. **프로젝트 구조**: `PROJECT_STRUCTURE.md` - WearOS 앱 데이터 전송 구조
 
 ### 프로젝트 관리자

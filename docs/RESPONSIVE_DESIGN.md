@@ -309,5 +309,11 @@ import { LuWaves } from "react-icons/lu";
 
 <LuWaves size={32} color="#CC7722" /> //기본
 <LuWaves className="w-8 h-8" color="#CC7722" /> //Tailwind CSS
+
+//8.Leathery - 가죽
+import { GiLeatherBoot } from "react-icons/gi";
+
+<GiLeatherBoot size={32} color="#3C2905" /> //기본
+<GiLeatherBoot className="w-8 h-8" color="#3C2905" /> //Tailwind CSS
 ```
 

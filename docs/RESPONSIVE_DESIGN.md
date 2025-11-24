@@ -315,5 +315,11 @@ import { GiLeatherBoot } from "react-icons/gi";
 
 <GiLeatherBoot size={32} color="#3C2905" /> //기본
 <GiLeatherBoot className="w-8 h-8" color="#3C2905" /> //Tailwind CSS
+
+//9.Marine - 물방울
+import { IoWaterOutline } from "react-icons/io5";
+
+<IoWaterOutline size={32} color="#0C66E4" /> //기본
+<IoWaterOutline className="w-8 h-8" color="#0C66E4" /> //Tailwind CSS
 ```
 

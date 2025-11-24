@@ -55,10 +55,10 @@ export function useDevices(initialDevices: Device[], currentMood: Mood) {
   // TODO: 백엔드 API로 교체 필요
   // API 명세:
   // PUT /api/moods/current
-  // - 인증: Bearer token (NextAuth session)
+  // - 인증: NextAuth session (쿠키 기반)
   // - 요청: { moodId: string }
   // - 응답: { mood: Mood, updatedDevices: Device[] }
-  // - 설명: 현재 무드 변경 및 관련 디바이스 상태 업데이트
+  // - 설명: 무드를 변경하고 관련 디바이스 상태를 업데이트합니다 (색상, 음악, 향 모두 변경)
   useEffect(() => {
     setDevices((prev) =>
       prev.map((d) => {
@@ -110,7 +110,7 @@ export function useDevices(initialDevices: Device[], currentMood: Mood) {
   // TODO: 백엔드 API로 교체 필요
   // API 명세:
   // POST /api/devices
-  // - 인증: Bearer token (NextAuth session)
+  // - 인증: NextAuth session (쿠키 기반)
   // - 요청: { type: DeviceType, name?: string }
   // - 응답: { device: Device }
   // - 설명: 새 디바이스 생성 및 DB 저장

@@ -15,10 +15,10 @@ export function useMood(initialMood: Mood, setDevices: React.Dispatch<React.SetS
   // TODO: 백엔드 API로 교체 필요
   // API 명세:
   // PUT /api/moods/current/scent
-  // - 인증: Bearer token (NextAuth session)
-  // - 요청: { moodId: string }
+  // - 인증: NextAuth session (쿠키 기반)
+  // - 요청: { moodId: string } (같은 무드명의 다른 센트 버전)
   // - 응답: { mood: Mood, updatedDevices: Device[] }
-  // - 설명: 센트 변경으로 인한 무드 업데이트
+  // - 설명: 센트 변경으로 인한 무드 업데이트 및 관련 디바이스 상태 업데이트
   const handleScentChange = (newMood: Mood) => {
     setCurrentMood(newMood);
     setDevices((prev) =>
@@ -61,10 +61,10 @@ export function useMood(initialMood: Mood, setDevices: React.Dispatch<React.SetS
   // TODO: 백엔드 API로 교체 필요
   // API 명세:
   // PUT /api/moods/current/song
-  // - 인증: Bearer token (NextAuth session)
-  // - 요청: { moodId: string }
+  // - 인증: NextAuth session (쿠키 기반)
+  // - 요청: { moodId: string } (같은 무드명의 다른 노래 버전)
   // - 응답: { mood: Mood, updatedDevices: Device[] }
-  // - 설명: 노래 변경으로 인한 무드 업데이트
+  // - 설명: 노래 변경으로 인한 무드 업데이트 및 관련 디바이스 상태 업데이트
   const handleSongChange = (newMood: Mood) => {
     setCurrentMood(newMood);
     setDevices((prev) =>

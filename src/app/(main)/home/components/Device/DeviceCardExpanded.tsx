@@ -12,17 +12,22 @@
   - Power On/Off 버튼 클릭 시 전원 토글 (onTogglePower) - 전원 아이콘 사용
   - 오른쪽 아래 "Delete" 버튼 클릭 시 디바이스 삭제(onDelete)
   - 디바이스 타입에 따라 상태 설명문 다르게 표시
-  - Manager는 다른 디바이스보다 긴 상태 설명
+  - 디바이스 타입별 컨트롤 기능:
+    - 조명: RGB 컬러 피커 + 밝기 슬라이더
+    - 향: 분사량 슬라이더 (1-10)
+    - 음악: 현재 노래 → 다음 노래 표기만 (대시보드에서 통제)
+    - Manager: 모든 기능 통합 표시
 */
 
 "use client";
 
 import { Device } from "@/types/device";
 import { type Mood } from "@/types/mood";
-import { ReactNode, useState } from "react";
-import { FaPalette, FaLightbulb, FaSprayCan, FaVolumeUp, FaCog } from "react-icons/fa";
 import { Power } from "lucide-react";
-import { blendWithWhite } from "@/lib/utils";
+import { useDeviceCard } from "./hooks/useDeviceCard";
+import DeviceNameEditor from "./components/DeviceNameEditor";
+import DeviceControls from "./components/DeviceControls";
+import { getDeviceIcon, getDeviceStatusDescription } from "./utils/deviceUtils";
 
 export default function DeviceCardExpanded({
   device,
@@ -31,6 +36,9 @@ export default function DeviceCardExpanded({
   onDelete,
   onTogglePower,
   onUpdateName,
+  onUpdateLightColor,
+  onUpdateLightBrightness,
+  onUpdateScentLevel,
 }: {
   device: Device;
   currentMood?: Mood;
@@ -38,28 +46,19 @@ export default function DeviceCardExpanded({
   onDelete: () => void;
   onTogglePower: () => void;
   onUpdateName: (name: string) => void;
+  onUpdateLightColor?: (color: string) => void;
+  onUpdateLightBrightness?: (brightness: number) => void;
+  onUpdateScentLevel?: (level: number) => void;
 }) {
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editedName, setEditedName] = useState(device.name);
-
-  // 무드 컬러를 흰색에 가깝게 블렌딩 (90% 흰색 + 10% 무드 컬러)
-  const backgroundColor = currentMood
-    ? blendWithWhite(currentMood.color, 0.9)
-    : "rgb(255, 255, 255)";
-
-  const handleNameSubmit = () => {
-    if (editedName.trim() !== "" && editedName !== device.name) {
-      onUpdateName(editedName.trim());
-    } else {
-      setEditedName(device.name);
-    }
-    setIsEditingName(false);
-  };
-
-  const handleNameCancel = () => {
-    setEditedName(device.name);
-    setIsEditingName(false);
-  };
+  const {
+    lightColor,
+    setLightColor,
+    lightBrightness,
+    setLightBrightness,
+    scentLevel,
+    setScentLevel,
+    backgroundColor,
+  } = useDeviceCard({ device, currentMood });
 
   return (
     <div
@@ -71,41 +70,14 @@ export default function DeviceCardExpanded({
           ? `${backgroundColor}CC` // 80% 투명도 (CC = 204/255)
           : "rgba(200, 200, 200, 0.8)",
       }}
+      key={`device-${device.id}-${device.power}`} // 전원 상태 변경 시 리렌더링 강제
       onClick={onClose}
     >
       {/* 상단: 아이콘 + 이름 + 배터리 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="text-3xl">{getIcon(device.type)}</div>
-          {isEditingName ? (
-            <input
-              type="text"
-              value={editedName}
-              onChange={(e) => setEditedName(e.target.value)}
-              onBlur={handleNameSubmit}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleNameSubmit();
-                } else if (e.key === "Escape") {
-                  handleNameCancel();
-                }
-              }}
-              onClick={(e) => e.stopPropagation()}
-              className="text-lg font-semibold bg-white border border-gray-300 rounded px-2 py-1 outline-none focus:ring-2 focus:ring-black"
-              autoFocus
-            />
-          ) : (
-            <div
-              className="text-lg font-semibold cursor-text hover:underline"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsEditingName(true);
-              }}
-              title="Click to edit name"
-            >
-              {device.name}
-            </div>
-          )}
+          <div className="text-3xl">{getDeviceIcon(device.type)}</div>
+          <DeviceNameEditor name={device.name} onUpdate={onUpdateName} />
         </div>
 
         <div className="text-sm font-medium">{device.battery}%</div>
@@ -129,9 +101,32 @@ export default function DeviceCardExpanded({
         </button>
       </div>
 
+      {/* 타입별 컨트롤 */}
+      <div className="mt-4 space-y-3">
+        <DeviceControls
+          device={device}
+          currentMood={currentMood}
+          lightColor={lightColor}
+          lightBrightness={lightBrightness}
+          scentLevel={scentLevel}
+          onUpdateLightColor={(color) => {
+            setLightColor(color);
+            onUpdateLightColor?.(color);
+          }}
+          onUpdateLightBrightness={(brightness) => {
+            setLightBrightness(brightness);
+            onUpdateLightBrightness?.(brightness);
+          }}
+          onUpdateScentLevel={(level) => {
+            setScentLevel(level);
+            onUpdateScentLevel?.(level);
+          }}
+        />
+      </div>
+
       {/* 타입별 상태 설명 */}
       <div className="mt-4 pb-8 text-sm text-gray-600 leading-relaxed">
-        {getStatusDescription(device)}
+        {getDeviceStatusDescription(device)}
       </div>
 
       {/* Delete 버튼 */}
@@ -146,52 +141,4 @@ export default function DeviceCardExpanded({
       </div>
     </div>
   );
-}
-
-function getStatusDescription(device: Device): ReactNode {
-  if (!device.power) {
-    return "Power is turned off.";
-  }
-
-  switch (device.type) {
-    case "manager":
-      const lightStatus = device.output.brightness
-        ? `Light Status: ${device.output.brightness}%`
-        : "Light Status: -";
-      const scentStatus = device.output.scentType
-        ? `Scent Status: ${device.output.scentType} (Level ${device.output.scentLevel || 0})`
-        : "Scent Status: -";
-      const musicStatus = device.output.nowPlaying
-        ? `Music Status: ${device.output.nowPlaying}`
-        : "Music Status: -";
-      return (
-        <div className="flex flex-col gap-1">
-          <div>{lightStatus}</div>
-          <div>{scentStatus}</div>
-          <div>{musicStatus}</div>
-        </div>
-      );
-    case "light":
-      return device.output.brightness
-        ? `Light Status: ${device.output.brightness}%`
-        : "Light Status: -";
-    case "scent":
-      return device.output.scentType
-        ? `Scent Status: ${device.output.scentType} (Level ${device.output.scentLevel || 0})`
-        : "Scent Status: -";
-    case "speaker":
-      return device.output.nowPlaying
-        ? `Music Status: ${device.output.nowPlaying}`
-        : "Music Status: -";
-    default:
-      return "";
-  }
-}
-
-function getIcon(type: Device["type"]) {
-  if (type === "manager") return <FaPalette className="text-purple-500 text-3xl" />;
-  if (type === "light") return <FaLightbulb className="text-yellow-500 text-3xl" />;
-  if (type === "scent") return <FaSprayCan className="text-green-500 text-3xl" />;
-  if (type === "speaker") return <FaVolumeUp className="text-blue-500 text-3xl" />;
-  return <FaCog className="text-gray-500 text-3xl" />;
 }

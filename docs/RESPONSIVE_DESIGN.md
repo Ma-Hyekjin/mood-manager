@@ -321,5 +321,11 @@ import { IoWaterOutline } from "react-icons/io5";
 
 <IoWaterOutline size={32} color="#0C66E4" /> //기본
 <IoWaterOutline className="w-8 h-8" color="#0C66E4" /> //Tailwind CSS
+
+//10.Spicy - 고추
+import { FaPepperHot } from "react-icons/fa";
+
+<FaPepperHot size={32} color="#FE1C31" /> //기본
+<FaPepperHot className="w-8 h-8" color="#FE1C31" /> //Tailwind CSS
 ```
 

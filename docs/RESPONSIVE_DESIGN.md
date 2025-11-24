@@ -285,5 +285,11 @@ import { GiWoodenHelmet } from "react-icons/gi";
 
 <GiWoodenHelmet size={32} color="733700" /> //기본
 <GiWoodenHelmet className="w-8 h-8" color="#733700" /> //Tailwind CSS
+
+//4.Citrus - 오렌지
+import { PiOrangeDuotone } from "react-icons/pi";
+
+<PiOrangeDuotone size={32} color="#FF6600" /> //기본
+<PiOrangeDuotone className="w-8 h-8" color="#FF6600" /> //Tailwind CSS
 ```
 

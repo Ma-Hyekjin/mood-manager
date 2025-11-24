@@ -12,7 +12,7 @@ import toast from "react-hot-toast";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { status } = useSession();
 
   // 로그인된 상태에서는 login 페이지 접근 금지 → 즉시 home으로 이동
   useEffect(() => {

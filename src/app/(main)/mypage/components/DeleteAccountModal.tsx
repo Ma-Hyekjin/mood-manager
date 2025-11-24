@@ -36,7 +36,7 @@ export default function DeleteAccountModal({
         <h3 className="text-lg font-semibold mb-2">Delete Account</h3>
         <p className="text-sm text-gray-600 mb-4">
           This action cannot be undone. All your data will be permanently deleted. If you understand
-          and want to proceed, please type <strong>"I understand"</strong> below.
+          and want to proceed, please type <strong>&quot;I understand&quot;</strong> below.
         </p>
         <input
           type="text"

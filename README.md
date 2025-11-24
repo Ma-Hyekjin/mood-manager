@@ -307,25 +307,51 @@ mood-manager/
 
 ## Getting Started
 
-1.  **Install Dependencies:**
+### 필수 요구사항
+
+- **Node.js**: 18.x 이상 (권장: 22.21.0)
+- **npm**: 8.x 이상 (권장: 10.9.4)
+
+**Node.js 버전 확인**:
+```bash
+node --version
+```
+
+**nvm 사용 시** (프로젝트 루트에 `.nvmrc` 파일 포함):
+```bash
+nvm use
+```
+
+### 설치 및 실행
+
+1. **의존성 설치:**
 
     ```bash
     npm install
     ```
 
-2.  **Run Development Server:**
+2. **환경 변수 설정:**
+
+    프로젝트 루트에 `.env.local` 파일을 생성하고 다음 내용을 추가:
+
+    ```env
+    NEXTAUTH_URL=http://localhost:3000
+    NEXTAUTH_SECRET=your-secret-key-here
+    ```
+
+    자세한 환경 변수 설정은 `docs/SETUP_GUIDE.md`를 참고하세요.
+
+3. **개발 서버 실행:**
 
     ```bash
     npm run dev
     ```
 
-3.  **Environment Variables:**
-    Configure the following in your `.env` file:
+    브라우저에서 `http://localhost:3000`으로 접속할 수 있습니다.
 
-      * Firebase Configuration Keys
-      * NextAuth Providers (Google, Kakao, Naver)
-      * OpenAI API Key
-      * Backend URL (optional, for backend integration): `BACKEND_URL` or `NEXT_PUBLIC_BACKEND_URL`
+### 상세 설치 가이드
+
+자세한 설치 방법, 문제 해결, 버전 정보는 **[docs/SETUP_GUIDE.md](./docs/SETUP_GUIDE.md)**를 참고하세요.
 
 -----
 
@@ -375,12 +401,12 @@ The backend server should implement the following APIs (see `docs/API_SPEC.md` f
 ### 주요 문서
 - `docs/API_SPEC.md` - Complete API specification (21 endpoints)
 - `docs/API_ROUTES.md` - API routes structure guide
-- `docs/API_ARCHITECTURE_COMPARISON.md` - Next.js API Routes 채택 결정
 - `docs/TODO.md` - Current tasks and priorities
 - `docs/PAGE_ROLES.md` - Page roles and implementation status
 - `docs/PAGE_COMPLETION_REVIEW.md` - Page implementation status
 - `docs/RESPONSIVE_DESIGN.md` - Responsive design guide
 - `docs/PROJECT_STRUCTURE.md` - Project structure guide
+- `docs/SETUP_GUIDE.md` - Installation and setup guide
 
 전체 문서 목록은 `docs/README.md`를 참고하세요.
 

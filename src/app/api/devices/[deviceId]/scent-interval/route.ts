@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+// import { getServerSession } from "next-auth"; // TODO: 백엔드 API 연동 시 사용
 
 /**
  * PUT /api/devices/:deviceId/scent-interval
@@ -29,7 +29,7 @@ import { getServerSession } from "next-auth";
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { deviceId: string } }
+  { params }: { params: Promise<{ deviceId: string }> }
 ) {
   // [MOCK] 목업 모드: 목업 디바이스 반환
   // TODO: 백엔드 API 연동 시 아래 주석 해제하고 목업 코드 제거
@@ -43,7 +43,7 @@ export async function PUT(
   //   );
   // }
   //
-  // const { deviceId } = params;
+  // const { deviceId } = await params;
   // const body = await request.json();
   // const { interval } = body;
   //
@@ -74,7 +74,7 @@ export async function PUT(
   // return NextResponse.json(data);
 
   // 목업 응답: 센트 분사 주기 변경된 디바이스 반환
-  const { deviceId } = params;
+  const { deviceId } = await params;
   const body = await request.json();
   const { interval } = body;
   

@@ -11,3 +11,11 @@ import { NextRequest, NextResponse } from "next/server";
  * 
  * 참고: Next.js App Router에서는 각 경로별로 route.ts 파일을 생성합니다.
  */
+
+// 빈 export로 모듈로 인식되도록 함 (실제로는 사용되지 않음)
+export async function GET(_request: NextRequest) {
+  return NextResponse.json(
+    { message: "This endpoint is not used. See /api/moods/current" },
+    { status: 404 }
+  );
+}

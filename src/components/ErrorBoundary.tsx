@@ -86,7 +86,7 @@ function DefaultErrorFallback({
         </div>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h1>
         <p className="text-gray-600 mb-6">
-          We're sorry, but something unexpected happened. Please try again.
+          We&apos;re sorry, but something unexpected happened. Please try again.
         </p>
         {error && process.env.NODE_ENV === "development" && (
           <div className="mb-6 p-4 bg-red-50 rounded-md text-left">

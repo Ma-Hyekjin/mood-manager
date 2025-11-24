@@ -17,7 +17,7 @@ interface ConfirmPasswordSectionProps {
 
 export default function ConfirmPasswordSection({
   confirmPassword,
-  password,
+  password: _password,
   passwordsMatch,
   showConfirmPassword,
   onConfirmPasswordChange,

@@ -25,7 +25,7 @@ export function useProfile() {
   const [editedName, setEditedName] = useState("");
   const [editedFamilyName, setEditedFamilyName] = useState("");
   const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [_profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
 
   // [MOCK] 프로필 정보 조회

@@ -2,7 +2,6 @@
 // File: src/app/(main)/home/components/Device/components/DeviceControls.tsx
 // ======================================================
 
-import { ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 import type { Device } from "@/types/device";
 import type { Mood } from "@/types/mood";

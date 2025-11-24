@@ -81,7 +81,7 @@ export default function InquiryPage() {
             </div>
             <h2 className="text-xl font-semibold mb-2">Inquiry Submitted</h2>
             <p className="text-sm text-gray-600 mb-6">
-              Your inquiry has been submitted successfully. We'll get back to you soon.
+              Your inquiry has been submitted successfully. We&apos;ll get back to you soon.
             </p>
             <button
               onClick={() => router.push("/mypage")}

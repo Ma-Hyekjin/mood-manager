@@ -264,3 +264,14 @@
 - [x] 공통 둥근 모서리 적용
 - [x] 공통 그림자 적용
 - [x] 공통 애니메이션 적용
+
+
+## 향 아이콘
+```tsx
+//Musk - 몽글한 구름
+import { CiCloudOn } from "react-icons/ci";
+
+<CiCloudOn size={32} color="#FFBF00" /> //기본
+<CiCloudOn className="w-8 h-8" color="#FFBF00" /> //Tailwind CSS
+```
+

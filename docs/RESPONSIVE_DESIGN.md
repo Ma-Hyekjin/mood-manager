@@ -327,5 +327,11 @@ import { FaPepperHot } from "react-icons/fa";
 
 <FaPepperHot size={32} color="#FE1C31" /> //기본
 <FaPepperHot className="w-8 h-8" color="#FE1C31" /> //Tailwind CSS
+
+//11.Floral - 장미
+import { GiRose } from "react-icons/gi";
+
+<GiRose size={32} color="#E627DA" /> //기본
+<GiRose className="w-8 h-8" color="#E627DA" /> // Tailwind CSS
 ```
 

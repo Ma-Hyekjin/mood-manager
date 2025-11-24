@@ -19,7 +19,7 @@ export default function EmailSection({
   onEmailChange,
   onErrorClear,
   onEnterKey,
-  validateEmail,
+  validateEmail: _validateEmail,
 }: EmailSectionProps) {
   return (
     <div className="flex flex-col space-y-2">
@@ -35,7 +35,7 @@ export default function EmailSection({
             onEmailChange(e.target.value);
             onErrorClear();
           }}
-          onBlur={(e) => {
+          onBlur={() => {
             // 에러는 부모 컴포넌트에서 처리됨 (onEmailChange 내부에서)
           }}
           onKeyDown={(e) => {

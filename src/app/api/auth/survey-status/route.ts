@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+// import { getServerSession } from "next-auth"; // TODO: 백엔드 API 연동 시 사용
 
 /**
  * GET /api/auth/survey-status
@@ -21,7 +21,7 @@ import { getServerSession } from "next-auth";
  * - 인증이 필요한 엔드포인트
  * - 로그인 후 설문 페이지 또는 홈 페이지로 리다이렉트 결정에 사용
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   // [MOCK] 목업 모드: 항상 설문 미완료로 반환
   // TODO: 백엔드 API 연동 시 아래 주석 해제하고 목업 코드 제거
   //

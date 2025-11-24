@@ -45,7 +45,7 @@ export default function BirthDateGenderSection({
               }}
               onBlur={() => {
                 if (birthDate) {
-                  const error = validateBirthDate(birthDate);
+                  validateBirthDate(birthDate);
                   // 에러는 부모 컴포넌트에서 처리됨 (onBirthDateChange 내부에서)
                 }
               }}

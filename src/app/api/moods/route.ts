@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+// import { NextRequest, NextResponse } from "next/server"; // TODO: 사용 시 주석 해제
 
 /**
  * 이 파일은 사용되지 않습니다.

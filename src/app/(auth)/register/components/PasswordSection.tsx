@@ -26,8 +26,8 @@ export default function PasswordSection({
   onShowPasswordToggle,
   onErrorClear,
   onEnterKey,
-  calculatePasswordStrength,
-  confirmPassword,
+  calculatePasswordStrength: _calculatePasswordStrength,
+  confirmPassword: _confirmPassword,
 }: PasswordSectionProps) {
   return (
     <div className="flex flex-col space-y-2">

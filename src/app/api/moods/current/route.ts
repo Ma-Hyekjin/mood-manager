@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+// import { getServerSession } from "next-auth"; // TODO: 백엔드 API 연동 시 사용
 
 /**
  * GET /api/moods/current
@@ -45,7 +45,7 @@ import { getServerSession } from "next-auth";
  * - streamStatus가 'regenerated'이고 현재 노래가 끝나면 새 무드로 전환
  * - 자세한 로직은 MOOD_GENERATION_LOGIC.md 참고
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   // [MOCK] 목업 모드: 목업 무드 반환
   // TODO: 백엔드 API 연동 시 아래 주석 해제하고 목업 코드 제거
   //

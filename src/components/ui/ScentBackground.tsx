@@ -10,7 +10,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { TbSpray } from "react-icons/tb";
 import type { ScentType } from "@/types/mood";
 
 interface ScentParticle {
@@ -330,7 +329,6 @@ export default function ScentBackground({
 
       // 시간 기반 변화 (불규칙성 추가)
       const time = Date.now() * 0.001; // 초 단위 시간
-      const windChange = Math.sin(time * 0.1) * 0.2; // 바람 변화
 
       // 파티클 업데이트 및 그리기
       particlesRef.current.forEach((particle, index) => {

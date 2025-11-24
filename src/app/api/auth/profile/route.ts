@@ -10,7 +10,7 @@
 */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+// import { getServerSession } from "next-auth"; // TODO: 백엔드 API 연동 시 사용
 
 /**
  * GET /api/auth/profile
@@ -33,7 +33,7 @@ import { getServerSession } from "next-auth";
  * - 인증이 필요한 엔드포인트
  * - 본인의 프로필 정보만 조회 가능
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   // [MOCK] 목업 모드: 목업 프로필 반환
   // TODO: 백엔드 API 연동 시 아래 주석 해제하고 목업 코드 제거
   //

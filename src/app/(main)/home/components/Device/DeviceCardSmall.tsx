@@ -30,9 +30,17 @@ export default function DeviceCardSmall({
   onClick: () => void;
 }) {
   // 무드 컬러를 흰색에 가깝게 블렌딩 (90% 흰색 + 10% 무드 컬러)
-  const backgroundColor = currentMood
-    ? blendWithWhite(currentMood.color, 0.9)
-    : "rgb(255, 255, 255)";
+  // 전원이 켜져 있을 때만 무드 컬러 사용, 꺼져 있으면 회색
+  const getBackgroundColor = () => {
+    if (!device.power) {
+      return "rgba(200, 200, 200, 0.8)";
+    }
+    return currentMood
+      ? blendWithWhite(currentMood.color, 0.9)
+      : "rgb(255, 255, 255)";
+  };
+
+  const backgroundColor = getBackgroundColor();
 
   return (
     <div
@@ -47,6 +55,7 @@ export default function DeviceCardSmall({
           ? `${backgroundColor}CC` // 80% 투명도 (CC = 204/255)
           : "rgba(200, 200, 200, 0.8)",
       }}
+      key={`device-small-${device.id}-${device.power}`} // 전원 상태 변경 시 리렌더링 강제
     >
       {/* 상단: 아이콘 - 이름 - 배터리 일렬 배치 */}
       <div className="flex items-center gap-2">

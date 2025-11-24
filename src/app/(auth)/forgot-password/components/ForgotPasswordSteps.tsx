@@ -69,7 +69,7 @@ export default function ForgotPasswordSteps({
       {step === "email" && (
         <>
           <p className="text-sm text-gray-600 mb-8">
-            Enter your email address and we'll send you a verification code.
+            Enter your email address and we&apos;ll send you a verification code.
           </p>
           <form onSubmit={onSendCode} className="space-y-5">
             <div className="flex flex-col space-y-2">
@@ -105,7 +105,7 @@ export default function ForgotPasswordSteps({
       {step === "verify" && (
         <>
           <p className="text-sm text-gray-600 mb-8">
-            We've sent a 6-digit verification code to <strong>{email}</strong>. Please enter it below.
+            We&apos;ve sent a 6-digit verification code to <strong>{email}</strong>. Please enter it below.
           </p>
           <form onSubmit={onVerifyCode} className="space-y-5">
             <div className="flex flex-col space-y-2">

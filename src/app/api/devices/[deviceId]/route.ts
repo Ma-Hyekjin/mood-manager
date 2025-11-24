@@ -25,7 +25,7 @@ import { NextRequest, NextResponse } from "next/server";
  */
 export async function DELETE(
   _request: NextRequest,
-  { params: _params }: { params: { deviceId: string } }
+  { params: _params }: { params: Promise<{ deviceId: string }> }
 ) {
   // [MOCK] 목업 모드: 항상 성공 응답 반환
   // TODO: 백엔드 API 연동 시 아래 주석 해제하고 목업 코드 제거

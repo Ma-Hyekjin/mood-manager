@@ -61,6 +61,11 @@ export default function RegisterForm({ form }: RegisterFormProps) {
     handleRegister,
   } = form;
 
+  // calculatePasswordStrength를 래핑하여 null을 ""로 변환
+  const wrappedCalculatePasswordStrength = (password: string): "" | "weak" | "medium" | "strong" => {
+    return calculatePasswordStrength(password) ?? "";
+  };
+
   return (
     <div className="w-full max-w-sm space-y-5">
       <PersonalInfoSection
@@ -120,7 +125,7 @@ export default function RegisterForm({ form }: RegisterFormProps) {
 
       <PasswordSection
         password={password}
-        passwordStrength={passwordStrength}
+        passwordStrength={passwordStrength ?? ""}
         passwordsMatch={passwordsMatch}
         showPassword={showPassword}
         onPasswordChange={(value) => {
@@ -136,7 +141,7 @@ export default function RegisterForm({ form }: RegisterFormProps) {
         onEnterKey={() => {
           if (isFormValid()) handleRegister();
         }}
-        calculatePasswordStrength={calculatePasswordStrength}
+        calculatePasswordStrength={wrappedCalculatePasswordStrength}
         confirmPassword={confirmPassword}
       />
 

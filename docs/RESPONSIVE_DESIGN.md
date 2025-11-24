@@ -268,10 +268,16 @@
 
 ## 향 아이콘
 ```tsx
-//Musk - 몽글한 구름
+//1.Musk - 몽글한 구름
 import { CiCloudOn } from "react-icons/ci";
 
 <CiCloudOn size={32} color="#FFBF00" /> //기본
 <CiCloudOn className="w-8 h-8" color="#FFBF00" /> //Tailwind CSS
+
+//2.Aromatic - 허브
+import { GiHerbsBundle } from "react-icons/gi";
+
+<GiHerbsBundle size={32} color="93A188" /> //기본
+<GiHerbsBundle className="w-8 h-8" color="#93A188" /> //Tailwind CSS
 ```
 

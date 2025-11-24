@@ -279,5 +279,11 @@ import { GiHerbsBundle } from "react-icons/gi";
 
 <GiHerbsBundle size={32} color="93A188" /> //기본
 <GiHerbsBundle className="w-8 h-8" color="#93A188" /> //Tailwind CSS
+
+//3.Woody - 나무
+import { GiWoodenHelmet } from "react-icons/gi";
+
+<GiWoodenHelmet size={32} color="733700" /> //기본
+<GiWoodenHelmet className="w-8 h-8" color="#733700" /> //Tailwind CSS
 ```
 

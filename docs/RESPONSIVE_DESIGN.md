@@ -303,5 +303,11 @@ import { LuSprout } from "react-icons/lu";
 
 <LuSprout size={32} color="#15E638" /> //기본
 <LuSprout className="w-8 h-8" color="#15E638" /> //Tailwind CSS
+
+//7.Dry - 건조 웨이브 문양
+import { LuWaves } from "react-icons/lu";
+
+<LuWaves size={32} color="#CC7722" /> //기본
+<LuWaves className="w-8 h-8" color="#CC7722" /> //Tailwind CSS
 ```
 

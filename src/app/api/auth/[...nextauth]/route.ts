@@ -132,6 +132,54 @@ const handler = NextAuth({
   },
 
   callbacks: {
+    async signIn({ user, account, profile }) {
+      // 소셜 로그인 처리 (Google, Kakao, Naver)
+      if (account?.provider !== "credentials" && user.email) {
+        try {
+          // 1. 이메일로 기존 사용자 확인
+          let existingUser = await prisma.user.findUnique({
+            where: { email: user.email },
+          });
+
+          if (!existingUser) {
+            // 2. 새 사용자 생성
+            existingUser = await prisma.user.create({
+              data: {
+                email: user.email,
+                givenName: user.name || "",
+                provider: account.provider, // google, kakao, naver
+                providerId: account.providerAccountId, // 소셜 로그인 고유 ID
+                profileImageUrl: user.image || null,
+                hasSurvey: false, // 초기값: 설문 미완료
+              },
+            });
+
+            console.log(
+              `[NextAuth] New social login user created: ${user.email} (${account.provider})`
+            );
+          } else {
+            // 3. 기존 사용자 - provider 정보 업데이트 (선택)
+            if (!existingUser.provider || !existingUser.providerId) {
+              await prisma.user.update({
+                where: { id: existingUser.id },
+                data: {
+                  provider: account.provider,
+                  providerId: account.providerAccountId,
+                },
+              });
+            }
+          }
+
+          // 4. user.id를 DB의 ID로 설정 (JWT에서 사용)
+          user.id = String(existingUser.id);
+        } catch (error) {
+          console.error("[NextAuth] Social login error:", error);
+          return false; // 로그인 실패
+        }
+      }
+
+      return true; // 로그인 성공
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;

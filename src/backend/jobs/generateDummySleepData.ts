@@ -46,7 +46,7 @@ export async function generateDummySleepData({
 
   const col = collection(db, "users", userId, "raw_periodic");
 
-  const docs: any[] = [];
+  const docs: Record<string, unknown>[] = [];
   let t = start.getTime();
 
   while (t <= end.getTime()) {

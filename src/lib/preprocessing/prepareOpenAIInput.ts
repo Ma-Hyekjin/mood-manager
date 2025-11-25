@@ -33,7 +33,18 @@ export interface OpenAIInputPayload {
     rainType: number;
     sky: number;
   };
-  preferences?: any;
+  preferences?: {
+    fragranceTop1?: string | null;
+    fragranceTop2?: string | null;
+    fragranceTop3?: string | null;
+    preferredLightR?: number | null;
+    preferredLightG?: number | null;
+    preferredLightB?: number | null;
+    preferredBrightness?: number | null;
+    soundGenreTop1?: string | null;
+    soundGenreTop2?: string | null;
+    soundGenreTop3?: string | null;
+  };
   emotion?: {
     laugh_count: number;
     sigh_count: number;
@@ -57,7 +68,7 @@ export function prepareOpenAIInput(
     stress: stress_score,
 
     sleep: {
-      score: sleep_score,
+      score: sleep_score ?? 0,
       details: {},
     },
 

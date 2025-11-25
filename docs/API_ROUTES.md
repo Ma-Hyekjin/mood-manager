@@ -8,21 +8,27 @@
 api/
 ├── auth/
 │   ├── [...nextauth]/          # NextAuth 기본 제공 (소셜 로그인)
-│   ├── register/               # 회원가입
-│   └── survey-status/          # 설문 조사 완료 여부 확인
+│   ├── register/               # POST (회원가입)
+│   ├── survey-status/          # GET (설문 조사 완료 여부 확인)
+│   ├── forgot-password/        # POST (비밀번호 찾기)
+│   ├── profile/                # GET (프로필 정보 조회)
+│   └── account/                # DELETE (회원탈퇴)
 ├── devices/
 │   ├── route.ts                # GET (목록 조회), POST (생성)
 │   └── [deviceId]/
 │       ├── route.ts            # DELETE (삭제)
 │       ├── power/              # PUT (전원 토글)
-│       └── scent-level/        # PUT (센트 레벨 변경)
-└── moods/
-    ├── current/
-    │   ├── route.ts            # GET (조회), PUT (전체 변경)
-    │   ├── scent/              # PUT (센트 변경)
-    │   ├── song/               # PUT (노래 변경)
-    │   └── color/              # PUT (컬러 변경)
-    └── route.ts                # 사용 안 함 (참고용)
+│       ├── scent-level/        # PUT (센트 레벨 변경, 레거시)
+│       └── scent-interval/     # PUT (센트 분사 주기 변경)
+├── moods/
+│   ├── current/
+│   │   ├── route.ts            # GET (조회), PUT (전체 변경)
+│   │   ├── scent/              # PUT (센트 변경)
+│   │   ├── song/               # PUT (노래 변경)
+│   │   └── color/              # PUT (컬러 변경)
+│   └── route.ts                # 사용 안 함 (참고용)
+└── inquiry/
+    └── route.ts                # POST (1:1 문의 제출)
 ```
 
 ## 구현 가이드

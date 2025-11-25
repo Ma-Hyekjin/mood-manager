@@ -8,10 +8,11 @@ import { signIn } from "next-auth/react";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { SiKakao, SiNaver } from "react-icons/si";
+import toast from "react-hot-toast";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { status } = useSession();
 
   // 로그인된 상태에서는 login 페이지 접근 금지 → 즉시 home으로 이동
   useEffect(() => {
@@ -49,12 +50,16 @@ export default function LoginPage() {
     // Rate limiting 체크
     if (isLocked && lockUntil) {
       const minutesLeft = Math.ceil((lockUntil.getTime() - new Date().getTime()) / 60000);
-      setErrorMsg(`Too many login attempts. Please try again in ${minutesLeft} minute(s).`);
+      const message = `Too many login attempts. Please try again in ${minutesLeft} minute(s).`;
+      setErrorMsg(message);
+      toast.error(message);
       return;
     }
 
     if (!email || !password) {
-      setErrorMsg("Please enter your email and password.");
+      const message = "Please enter your email and password.";
+      setErrorMsg(message);
+      toast.error(message);
       return;
     }
 
@@ -78,13 +83,16 @@ export default function LoginPage() {
         });
 
         if (result?.error) {
-          setErrorMsg("Invalid email or password.");
+          const message = "Invalid email or password.";
+          setErrorMsg(message);
+          toast.error(message);
           return;
         }
 
         // [MOCK] 설문을 하지 않은 상태라고 가정
         setLoginAttempts(0); // 성공 시 시도 횟수 리셋
         setIsLoading(false);
+        toast.success("Login successful!");
         router.push("/home");
         return;
       }
@@ -99,12 +107,16 @@ export default function LoginPage() {
         lockTime.setMinutes(lockTime.getMinutes() + 15);
         setLockUntil(lockTime);
         setIsLocked(true);
-        setErrorMsg("Too many failed login attempts. Your account is locked for 15 minutes.");
+        const message = "Too many failed login attempts. Your account is locked for 15 minutes.";
+        setErrorMsg(message);
+        toast.error(message);
         setIsLoading(false);
         return;
       }
 
-      setErrorMsg(`Invalid email or password. (${newAttempts}/5 attempts)`);
+      const message = `Invalid email or password. (${newAttempts}/5 attempts)`;
+      setErrorMsg(message);
+      toast.error("Invalid email or password.");
       setIsLoading(false);
 
       // const result = await signIn("credentials", {
@@ -143,7 +155,9 @@ export default function LoginPage() {
       // }
     } catch (err) {
       console.error(err);
-      setErrorMsg("An unexpected error occurred. Please try again.");
+      const message = "An unexpected error occurred. Please try again.";
+      setErrorMsg(message);
+      toast.error(message);
       setIsLoading(false);
     }
   };
@@ -152,7 +166,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col items-center justify-center px-6">
       <h1 className="text-2xl font-semibold mb-8">Mood Manager</h1>
 
-      <div className="w-full max-w-sm space-y-5">
+      <div className="w-full max-w-sm space-y-3">
 
         {/* Email */}
         <div className="flex flex-col space-y-2">
@@ -218,33 +232,33 @@ export default function LoginPage() {
         <button
           onClick={handleLogin}
           disabled={isLoading || isLocked}
-          className="w-full bg-black text-white py-2 rounded-lg font-medium active:bg-gray-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-black text-white h-12 rounded-lg font-medium active:bg-gray-700 transition disabled:opacity-50 disabled:cursor-not-allowed mt-6"
         >
           {isLoading ? "Signing in..." : isLocked ? "Account Locked" : "Sign In"}
         </button>
 
-        {/* TODO: 비밀번호 찾기 기능 */}
-        {/* <Link href="/forgot-password" className="text-sm text-gray-500 text-center block mt-2">
-          Forgot password?
-        </Link> */}
-
         {/* Sign Up */}
         <button
           onClick={() => router.push("/register")}
-          className="w-full bg-white text-black py-2 rounded-lg font-medium border active:bg-gray-200 transition"
+          className="w-full bg-white text-black h-12 rounded-lg font-medium border active:bg-gray-200 transition"
         >
           Sign Up
         </button>
 
+        {/* Forgot Password */}
+        <Link href="/forgot-password" className="text-sm text-gray-500 text-center block mt-1 hover:text-gray-700 transition underline">
+          Forgot password?
+        </Link>
+
         {/* Divider */}
-        <div className="flex items-center my-4">
+        <div className="flex items-center my-6">
           <div className="flex-grow h-px bg-gray-300"></div>
           <span className="px-3 text-sm text-gray-500">Social Sign In</span>
           <div className="flex-grow h-px bg-gray-300"></div>
         </div>
 
         {/* Social Login */}
-        <div className="flex justify-center space-x-6">
+        <div className="flex justify-center space-x-6 mt-4">
 
           {/* Google */}
           <button

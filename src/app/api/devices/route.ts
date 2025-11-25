@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+// import { getServerSession } from "next-auth"; // TODO: 백엔드 API 연동 시 사용
 
 /**
  * GET /api/devices
@@ -22,7 +22,7 @@ import { getServerSession } from "next-auth";
  * - 현재 사용자의 디바이스만 반환
  * - 초기 로드 시 호출
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   // [MOCK] 목업 모드: 빈 디바이스 목록 반환 (프론트엔드에서 목업 데이터 사용)
   // TODO: 백엔드 API 연동 시 아래 주석 해제하고 목업 코드 제거
   //

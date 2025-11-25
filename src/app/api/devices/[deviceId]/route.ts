@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+// import { getServerSession } from "next-auth"; // TODO: 백엔드 API 연동 시 사용
 
 /**
  * DELETE /api/devices/:deviceId
@@ -24,8 +24,8 @@ import { getServerSession } from "next-auth";
  * - 삭제 시 관련 데이터도 함께 삭제
  */
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { deviceId: string } }
+  _request: NextRequest,
+  { params: _params }: { params: Promise<{ deviceId: string }> }
 ) {
   // [MOCK] 목업 모드: 항상 성공 응답 반환
   // TODO: 백엔드 API 연동 시 아래 주석 해제하고 목업 코드 제거

@@ -33,10 +33,21 @@ import type { WeatherData } from "@/lib/weather/fetchWeather";
 import { calculateDailySleepScore } from "../sleep/calculateDailySleepScore";
 
 export interface ProcessedMetrics {
-  stress_score: number;    
+  stress_score: number;
   sleep_score?: number;
-  weather?: WeatherData;   
-  preferences?: any;
+  weather?: WeatherData;
+  preferences?: {
+    fragranceTop1?: string | null;
+    fragranceTop2?: string | null;
+    fragranceTop3?: string | null;
+    preferredLightR?: number | null;
+    preferredLightG?: number | null;
+    preferredLightB?: number | null;
+    preferredBrightness?: number | null;
+    soundGenreTop1?: string | null;
+    soundGenreTop2?: string | null;
+    soundGenreTop3?: string | null;
+  };
   laugh_count?: number;
   sigh_count?: number;
 }

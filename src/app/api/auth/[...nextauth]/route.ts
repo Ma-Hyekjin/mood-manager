@@ -134,7 +134,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account, profile }) {
       // 소셜 로그인 처리 (Google, Kakao, Naver)
-      if (account?.provider !== "credentials" && user.email) {
+      if (account?.provider !== "credentials" && user.email && account) {
         try {
           // 1. 이메일로 기존 사용자 확인
           const existingUser = await prisma.user.findUnique({

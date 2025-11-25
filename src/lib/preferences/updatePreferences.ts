@@ -47,10 +47,23 @@ export interface MoodUsage {
   laughCount: number;
 }
 
+type PreferenceData = {
+  fragranceTop1?: string | null;
+  fragranceTop2?: string | null;
+  fragranceTop3?: string | null;
+  preferredLightR?: number | null;
+  preferredLightG?: number | null;
+  preferredLightB?: number | null;
+  preferredBrightness?: number | null;
+  soundGenreTop1?: string | null;
+  soundGenreTop2?: string | null;
+  soundGenreTop3?: string | null;
+};
+
 /** --------------------------------------------
  * 향 선호도 업데이트 (Top3)
  * -------------------------------------------*/
-function updateFragrance(prefs: any, used: string, reward: number) {
+function updateFragrance(prefs: PreferenceData, used: string, reward: number) {
   const categories = [
     "musk",
     "aromatic",
@@ -66,13 +79,13 @@ function updateFragrance(prefs: any, used: string, reward: number) {
     "powdery",
   ];
 
-  let scores: Record<string, number> = {};
+  const scores: Record<string, number> = {};
   categories.forEach((c) => (scores[c] = 0));
 
   // 기존 Top3 반영
-  scores[prefs.fragrance_top1] = 1.0;
-  scores[prefs.fragrance_top2] = 0.7;
-  scores[prefs.fragrance_top3] = 0.4;
+  scores[prefs.fragranceTop1 || "citrus"] = 1.0;
+  scores[prefs.fragranceTop2 || "floral"] = 0.7;
+  scores[prefs.fragranceTop3 || "woody"] = 0.4;
 
   // 강화
   scores[used] = scores[used] * (1 - ALPHA) + reward * ALPHA;
@@ -82,9 +95,9 @@ function updateFragrance(prefs: any, used: string, reward: number) {
     .sort((a, b) => b[1] - a[1])
     .map(([key]) => key);
 
-  prefs.fragrance_top1 = sorted[0];
-  prefs.fragrance_top2 = sorted[1];
-  prefs.fragrance_top3 = sorted[2];
+  prefs.fragranceTop1 = sorted[0];
+  prefs.fragranceTop2 = sorted[1];
+  prefs.fragranceTop3 = sorted[2];
 
   return prefs;
 }
@@ -92,16 +105,16 @@ function updateFragrance(prefs: any, used: string, reward: number) {
 /** --------------------------------------------
  * 조명 업데이트 (RGB + 밝기)
  * -------------------------------------------*/
-function updateLighting(prefs: any, usage: MoodUsage, reward: number) {
-  prefs.preferred_light_R =
-    prefs.preferred_light_R * (1 - ALPHA) + usage.light.R * ALPHA;
-  prefs.preferred_light_G =
-    prefs.preferred_light_G * (1 - ALPHA) + usage.light.G * ALPHA;
-  prefs.preferred_light_B =
-    prefs.preferred_light_B * (1 - ALPHA) + usage.light.B * ALPHA;
+function updateLighting(prefs: PreferenceData, usage: MoodUsage, _reward: number) {
+  prefs.preferredLightR =
+    (prefs.preferredLightR || 255) * (1 - ALPHA) + usage.light.R * ALPHA;
+  prefs.preferredLightG =
+    (prefs.preferredLightG || 255) * (1 - ALPHA) + usage.light.G * ALPHA;
+  prefs.preferredLightB =
+    (prefs.preferredLightB || 255) * (1 - ALPHA) + usage.light.B * ALPHA;
 
-  prefs.preferred_brightness =
-    prefs.preferred_brightness * (1 - ALPHA) +
+  prefs.preferredBrightness =
+    (prefs.preferredBrightness || 100) * (1 - ALPHA) +
     usage.light.brightness * ALPHA;
 
   return prefs;
@@ -110,33 +123,33 @@ function updateLighting(prefs: any, usage: MoodUsage, reward: number) {
 /** --------------------------------------------
  * 음향 장르 업데이트 (Top3)
  * -------------------------------------------*/
-function updateSound(prefs: any, usedGenre: string, reward: number) {
-  let scores: Record<string, number> = {};
+function updateSound(prefs: PreferenceData, usedGenre: string, _reward: number) {
+  const scores: Record<string, number> = {};
 
   const genres = [
-    prefs.sound_genre_top1,
-    prefs.sound_genre_top2,
-    prefs.sound_genre_top3,
+    prefs.soundGenreTop1,
+    prefs.soundGenreTop2,
+    prefs.soundGenreTop3,
     usedGenre,
   ];
 
-  const uniqueGenres = Array.from(new Set(genres));
+  const uniqueGenres = Array.from(new Set(genres)).filter((g): g is string => !!g);
 
   uniqueGenres.forEach((g) => (scores[g] = 0));
 
-  scores[prefs.sound_genre_top1] = 1.0;
-  scores[prefs.sound_genre_top2] = 0.7;
-  scores[prefs.sound_genre_top3] = 0.4;
+  scores[prefs.soundGenreTop1 || "pop"] = 1.0;
+  scores[prefs.soundGenreTop2 || "jazz"] = 0.7;
+  scores[prefs.soundGenreTop3 || "classical"] = 0.4;
 
-  scores[usedGenre] = scores[usedGenre] * (1 - ALPHA) + reward * ALPHA;
+  scores[usedGenre] = (scores[usedGenre] || 0) * (1 - ALPHA) + _reward * ALPHA;
 
   const sorted = Object.entries(scores)
     .sort((a, b) => b[1] - a[1])
     .map(([key]) => key);
 
-  prefs.sound_genre_top1 = sorted[0];
-  prefs.sound_genre_top2 = sorted[1];
-  prefs.sound_genre_top3 = sorted[2];
+  prefs.soundGenreTop1 = sorted[0];
+  prefs.soundGenreTop2 = sorted[1];
+  prefs.soundGenreTop3 = sorted[2];
 
   return prefs;
 }
@@ -167,18 +180,18 @@ export async function updateUserPreferences(
   const updated = await prisma.userPreferences.update({
     where: { userId },
     data: {
-      fragrance_top1: updatedPrefs.fragrance_top1 ?? undefined,
-      fragrance_top2: updatedPrefs.fragrance_top2 ?? undefined,
-      fragrance_top3: updatedPrefs.fragrance_top3 ?? undefined,
-  
-      preferred_light_R: updatedPrefs.preferred_light_R ?? undefined,
-      preferred_light_G: updatedPrefs.preferred_light_G ?? undefined,
-      preferred_light_B: updatedPrefs.preferred_light_B ?? undefined,
-      preferred_brightness: updatedPrefs.preferred_brightness ?? undefined,
-  
-      sound_genre_top1: updatedPrefs.sound_genre_top1 ?? undefined,
-      sound_genre_top2: updatedPrefs.sound_genre_top2 ?? undefined,
-      sound_genre_top3: updatedPrefs.sound_genre_top3 ?? undefined,
+      fragranceTop1: updatedPrefs.fragranceTop1 ?? undefined,
+      fragranceTop2: updatedPrefs.fragranceTop2 ?? undefined,
+      fragranceTop3: updatedPrefs.fragranceTop3 ?? undefined,
+
+      preferredLightR: updatedPrefs.preferredLightR !== null && updatedPrefs.preferredLightR !== undefined ? Math.round(updatedPrefs.preferredLightR) : undefined,
+      preferredLightG: updatedPrefs.preferredLightG !== null && updatedPrefs.preferredLightG !== undefined ? Math.round(updatedPrefs.preferredLightG) : undefined,
+      preferredLightB: updatedPrefs.preferredLightB !== null && updatedPrefs.preferredLightB !== undefined ? Math.round(updatedPrefs.preferredLightB) : undefined,
+      preferredBrightness: updatedPrefs.preferredBrightness ?? undefined,
+
+      soundGenreTop1: updatedPrefs.soundGenreTop1 ?? undefined,
+      soundGenreTop2: updatedPrefs.soundGenreTop2 ?? undefined,
+      soundGenreTop3: updatedPrefs.soundGenreTop3 ?? undefined,
     },
   });
 

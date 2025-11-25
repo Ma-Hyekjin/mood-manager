@@ -1,19 +1,31 @@
+// src/app/api/auth/[...nextauth]/route.ts
+/**
+ * [파일 역할]
+ * - NextAuth 설정 파일
+ * - 인증 프로바이더 설정 (Credentials, Google, Kakao, Naver)
+ * - JWT 및 세션 콜백 처리
+ *
+ * [사용되는 위치]
+ * - 모든 인증 관련 요청에서 자동 호출
+ * - /api/auth/* 엔드포인트
+ *
+ * [주의사항]
+ * - NEXTAUTH_SECRET 환경 변수 필수
+ * - 소셜 로그인은 해당 환경 변수가 있을 때만 활성화
+ */
+
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import NaverProvider from "next-auth/providers/naver";
 import KakaoProvider from "next-auth/providers/kakao";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { prisma } from "@/lib/prisma";
+import { verifyPassword } from "@/lib/auth/password";
 
 const handler = NextAuth({
   secret: process.env.NEXTAUTH_SECRET || "development-secret-key-change-in-production",
   providers: [
-    // [MOCK] 이메일/비밀번호 로그인 (Credentials Provider)
-    // TODO: 백엔드 API와 연동 필요
-    // API 명세:
-    // POST /api/auth/login (내부적으로 호출)
-    // - 요청: { email: string, password: string }
-    // - 응답: { success: boolean, user: { id: string, email: string, name: string } }
-    // - 설명: NextAuth가 자동으로 호출하여 인증 처리
+    // 이메일/비밀번호 로그인 (Credentials Provider)
     CredentialsProvider({
       id: "credentials",
       name: "Credentials",
@@ -26,50 +38,63 @@ const handler = NextAuth({
           return null;
         }
 
-        // [MOCK] 로컬 검증
-        // TODO: 백엔드 API로 교체 필요
-        const MOCK_EMAIL = "test@example.com";
-        const MOCK_PASSWORD = "1234";
+        try {
+          // 1. DB에서 사용자 조회
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+            select: {
+              id: true,
+              email: true,
+              password: true,
+              givenName: true,
+              familyName: true,
+            },
+          });
 
-        if (credentials.email === MOCK_EMAIL && credentials.password === MOCK_PASSWORD) {
+          console.log("[NextAuth] User lookup:", {
+            email: credentials.email,
+            found: !!user,
+            hasPassword: !!user?.password,
+          });
+
+          // 2. 사용자가 없거나 비밀번호가 없으면 실패
+          if (!user || !user.password) {
+            console.log("[NextAuth] Authentication failed: User not found or no password");
+            return null;
+          }
+
+          // 3. 비밀번호 검증
+          const isPasswordValid = await verifyPassword(
+            credentials.password,
+            user.password
+          );
+
+          console.log("[NextAuth] Password validation:", {
+            isValid: isPasswordValid,
+          });
+
+          if (!isPasswordValid) {
+            console.log("[NextAuth] Authentication failed: Invalid password");
+            return null;
+          }
+
+          // 4. 인증 성공 - 사용자 정보 반환
+          console.log("[NextAuth] Authentication successful:", {
+            userId: user.id,
+            email: user.email,
+          });
+
           return {
-            id: "user-1",
-            email: MOCK_EMAIL,
-            name: "Test User",
+            id: String(user.id),
+            email: user.email,
+            name: user.givenName
+              ? `${user.familyName || ""} ${user.givenName}`.trim()
+              : user.email,
           };
+        } catch (error) {
+          console.error("[NextAuth] Credentials authentication error:", error);
+          return null;
         }
-
-        // [API] 실제 백엔드 인증
-        // 백엔드 서버의 로그인 API 엔드포인트 호출
-        // try {
-        //   const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
-        //   const response = await fetch(`${backendUrl}/api/auth/login`, {
-        //     method: "POST",
-        //     headers: {
-        //       "Content-Type": "application/json",
-        //     },
-        //     body: JSON.stringify({
-        //       email: credentials.email,
-        //       password: credentials.password,
-        //     }),
-        //   });
-        //
-        //   if (!response.ok) return null;
-        //
-        //   const data = await response.json();
-        //   if (!data.success || !data.user) return null;
-        //
-        //   return {
-        //     id: data.user.id,
-        //     email: data.user.email,
-        //     name: data.user.name,
-        //   };
-        // } catch (error) {
-        //   console.error("Auth error:", error);
-        //   return null;
-        // }
-
-        return null;
       },
     }),
 

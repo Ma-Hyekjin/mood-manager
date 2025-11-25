@@ -15,9 +15,9 @@ import Image from "next/image";
 
 export default function TopNav() {
   return (
-    <div className="w-full h-10 flex items-center justify-center border-b bg-white">
+    <div className="w-full h-10 flex items-center justify-center bg-white">
       <Image
-        src="/logos/mood-manager-logo.svg"
+        src="/logos/mood-manager-logo.png"
         alt="Mood Manager"
         width={36}
         height={36}

@@ -31,7 +31,7 @@ export default function SurveyOverlay({ onComplete, onSkip }: SurveyOverlayProps
       <div className="relative bg-white rounded-lg p-6 w-[90%] max-w-md shadow-xl">
         <h2 className="text-xl font-bold mb-4">Welcome to Mood Manager</h2>
         <p className="text-gray-600 mb-6">
-          Let's set up your preferences to personalize your mood experience.
+          Let&apos;s set up your preferences to personalize your mood experience.
         </p>
 
         {/* TODO: 설문 폼 구현 */}

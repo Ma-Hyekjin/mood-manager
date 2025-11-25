@@ -13,7 +13,7 @@ API Docs: [Mood Manager – API Specification v1](https://www.notion.so/Mood-Man
 
 **Mood Manager** is the core service that operates a virtual output device called the **Manager**, which is capable of producing and controlling lighting, scents, and sound within the simulated home environment. The entire system pipeline is designed under the assumption that this Manager device exists as the final output layer of the project.
 
-The service analyzes biometric signals collected from the WearOS device (such as HRV and stress indicators), audio events (laughter/sigh detection), user preferences, and external factors such as weather. Using these combined inputs, the system infers a personalized mood state and drives the Manager device accordingly. This platform was developed as part of the Hanyang University Software Engineering course in collaboration with LG Electronics, following the pipeline: **WearOS → Firebase → ML Analysis Server → Next.js WebApp → OpenAI (Few-shot + RAG)**.
+The service analyzes biometric signals collected from the WearOS device (such as HRV and stress indicators), audio events (laughter/sigh detection), user preferences, and external factors such as weather. Using these combined inputs, the system infers a personalized mood state and drives the Manager device accordingly. This platform was developed as part of the Hanyang University Software Engineering course in collaboration with LG Electronics, following the pipeline: **WearOS → Firebase → ML Analysis Server → Next.js WebApp → OpenAI (Few-shot)**.
 
 ## 소개
 
@@ -21,7 +21,7 @@ The service analyzes biometric signals collected from the WearOS device (such as
 
 디바이스 'Manager'를 운용하는 핵심 서비스이며, Manager는 조명·향기·소리를 출력/제어하는 본 프로젝트의 가상 디바이스입니다. 본 프로젝트의 흐름은 해당 디바이스의 사용을 전제로 합니다.
 
-사용자의 생체 신호(HRV, 스트레스 지표), 음성 이벤트(웃음/한숨 감지), 개인 선호도, 그리고 날씨와 같은 외부 요인을 종합하여 개인화된 무드 상태를 추론합니다. 본 프로젝트는 한양대학교 소프트웨어공학(LG전자 산학협력) 과제의 일환으로 수행되었으며, **WearOS → Firebase → ML 분석 서버 → Next.js 웹앱 → OpenAI (Few-shot + RAG)** 파이프라인을 기반으로 동작되도록 설계되었습니다.
+사용자의 생체 신호(HRV, 스트레스 지표), 음성 이벤트(웃음/한숨 감지), 개인 선호도, 그리고 날씨와 같은 외부 요인을 종합하여 개인화된 무드 상태를 추론합니다. 본 프로젝트는 한양대학교 소프트웨어공학(LG전자 산학협력) 과제의 일환으로 수행되었으며, **WearOS → Firebase → ML 분석 서버 → Next.js 웹앱 → OpenAI (Few-shot)** 파이프라인을 기반으로 동작되도록 설계되었습니다.
 
 -----
 
@@ -52,7 +52,7 @@ The service analyzes biometric signals collected from the WearOS device (such as
 
   * **Data retrieval:** Receives biometric data and ML-classified audio events from Firestore.
   * **Preprocessing:** Converts biometric and audio data into valid numerical features and merges them with user preferences and external information such as weather.
-  * **AI inference:** Generates a structured prompt and performs mood inference using OpenAI Few-shot techniques combined with LangChain RAG.
+  * **AI inference:** Determines mood attributes (music, lighting color, scent, interval) based on biometric and emotion data, then generates a creative mood name using OpenAI Few-shot techniques that reflects the mood's characteristics (e.g., "bright sky", "blooming love").
   * **Dashboard:** Visualizes the final inferred mood and simulates home environment control through the Manager device.
 
 -----
@@ -84,7 +84,7 @@ The service analyzes biometric signals collected from the WearOS device (such as
 
   * **데이터 수집:** Firestore에서 생체 데이터와 ML 분류가 완료된 오디오 이벤트를 수신합니다.
   * **전처리:** 생체/음성 데이터를 유효한 수치형 데이터로 전처리합니다. 이후 사용자 선호도와 날씨 등 외부 데이터를 결합합니다.
-  * **AI 추론:** 구조화된 프롬프트를 생성하여 OpenAI Few-shot 및 LangChain RAG를 활용해 상태를 추론합니다.
+  * **AI 추론:** 생체 데이터와 감정 데이터를 기반으로 무드 속성(음악, 조명색, 향, 주기)을 결정하고, OpenAI Few-shot을 활용해 무드의 특성을 반영한 창의적인 이름을 생성합니다 (예: "bright sky", "blooming love").
   * **대시보드:** 최종 결정된 무드를 시각화하고 홈 환경 제어를 시뮬레이션합니다.
 -----
 
@@ -113,13 +113,14 @@ The service analyzes biometric signals collected from the WearOS device (such as
             │  - Fetch biometric (Firestore raw_periodic)    │       │
             │  - Receive ML classification result (POST)     │────────   
             │  - Merge: biometric + audio + prefs + weather  │
-            │  - Build prompt for OpenAI (Few-shot + RAG)    │
+            │  - Determine mood attributes                    │
+            │  - Generate mood name with OpenAI (Few-shot)    │
             │                                                │
             └─────────────────────┬──────────────────────────┘
                                   │ prompt
                                   ▼
                 ┌──────────────────────────────────┐
-                │     OpenAI Few-shot + RAG        │
+                │     OpenAI Few-shot              │
                 │   - Mood inference               │
                 │   - Lighting / Scent / Sound     │
                 │   - Output JSON mood profile     │
@@ -190,8 +191,6 @@ mood-manager/
  ├── docs/                      # Documentation
  │   ├── API_SPEC.md           # API Specification
  │   ├── API_ROUTES.md         # API Routes Documentation
- │   ├── BACKEND_INTEGRATION.md # Backend Integration Guide
- │   ├── MOOD_GENERATION_LOGIC.md # Mood Generation Logic
  │   ├── PAGE_ROLES.md         # Page Roles Documentation
  │   └── RESPONSIVE_DESIGN.md  # Responsive Design Guide
  ├── public/                    # Static Assets
@@ -201,7 +200,8 @@ mood-manager/
      ├── app/                   # Next.js App Router
      │   ├── (auth)/            # Authentication Routes
      │   │   ├── login/         # Login Page
-     │   │   └── register/      # Registration Page
+     │   │   ├── register/      # Registration Page
+     │   │   └── forgot-password/ # Forgot Password Page
      │   ├── (main)/            # Protected Routes
      │   │   ├── home/          # Home Dashboard
      │   │   │   ├── components/ # Page-specific Components
@@ -210,10 +210,14 @@ mood-manager/
      │   │   │   │   └── SurveyOverlay/ # Survey Overlay
      │   │   │   └── page.tsx   # Home Page
      │   │   └── mypage/        # User Profile Page
+     │   │       ├── qna/       # Q&A Page
+     │   │       ├── inquiry/   # 1:1 Inquiry Page
+     │   │       └── privacy/   # Privacy Policy Page
      │   ├── api/               # API Routes
      │   │   ├── auth/          # Authentication APIs
      │   │   ├── devices/       # Device Management APIs
      │   │   ├── moods/         # Mood Management APIs
+     │   │   ├── inquiry/       # Inquiry APIs
      │   │   └── ai/            # AI-related APIs
      │   ├── layout.tsx         # Root Layout
      │   └── page.tsx           # Splash Page
@@ -225,7 +229,7 @@ mood-manager/
      │   ├── prisma.ts          # Database ORM
      │   ├── utils.ts           # Utility Functions
      │   ├── aws.ts             # AWS Integration
-     │   └── openai.ts          # AI Prompting & RAG Logic
+     │   └── openai.ts          # AI Mood Name Inference
      ├── types/                  # TypeScript Type Definitions
      │   ├── device.ts          # Device Types
      │   └── mood.ts            # Mood Types
@@ -237,11 +241,12 @@ mood-manager/
 
 ### Key Features
 
-  * **Login System:** Email/Password authentication with rate limiting (5 failed attempts → 15min lock), enter-to-submit support, session-based access control, and social login (Google, Kakao, Naver). Supports mock/real API switching.
+  * **Login System:** Email/Password authentication with rate limiting (5 failed attempts → 15min lock), enter-to-submit support, session-based access control, and social login (Google, Kakao, Naver). Forgot password functionality with email-based reset link. Supports mock/real API switching.
   * **Registration System:** Complete registration form with Family Name, Name, Date of Birth, Gender fields. Real-time validation with visual feedback (email format, password strength, password match). Auto-formatting for date input (yyyy.mm.dd). Automatic session creation and redirect to home page.
   * **Survey Flow:** Initial user preference collection via popup overlay on home page (skippable). Defaults are applied if skipped. Survey status checked on home page load.
-  * **Home Dashboard:** Displays the inferred mood, offering environment presets (10 moods, 12 scents, 8 lighting colors) and a device control grid (2×N expandable cards). Full device management (add, delete, power toggle, scent level control).
+  * **Home Dashboard:** Displays the inferred mood, offering environment presets (10 moods, 12 scents, 8 lighting colors) and a device control grid (2×N expandable cards). Full device management (add, delete, power toggle, scent interval control).
   * **Mood Management:** Complete mood control system with full change, scent change, song change, and color change capabilities. Real-time device state updates.
+  * **My Page:** User profile information, Q&A, 1:1 inquiry, privacy policy, and account deletion with confirmation.
   * **API System:** All API routes implemented with mock responses. Ready for backend integration (code commented, ready to uncomment).
 
 -----
@@ -263,7 +268,9 @@ mood-manager/
   * [x] Email & Password Validation with Visual Feedback
   * [x] Rate Limiting for Login (5 failed attempts → 15min lock)
   * [x] Social Login Integration (Google, Kakao, Naver via NextAuth)
-  * [x] API Routes Structure Complete (Auth, Devices, Moods)
+  * [x] Forgot Password Functionality (Email-based reset link)
+  * [x] My Page Implementation (Profile, Q&A, 1:1 Inquiry, Privacy Policy, Account Deletion)
+  * [x] API Routes Structure Complete (Auth, Devices, Moods, Inquiry)
   * [x] Mock System Implementation (Frontend & API Routes)
   * [x] Project Structure Refactoring (Standard Next.js structure)
 
@@ -275,14 +282,14 @@ mood-manager/
   * [ ] ML Server Data Retrieval Pipeline
   * [ ] ML Result Integration with WebApp
   * [ ] WebApp Data Preprocessing (Biometric + ML Results + Preferences + Weather)
-  * [ ] OpenAI Few-shot + LangChain RAG Mood Selection Pipeline
+  * [ ] OpenAI Few-shot Mood Name Inference Pipeline
   * [x] Survey UI & Preference Storage Logic (SurveyOverlay component, home page popup)
   * [x] Home Dashboard v1 (Mood Display, Lighting/Scent/Sound Indicators)
-  * [x] Device Management System (Add, Delete, Power Toggle, Scent Level Control)
+  * [x] Device Management System (Add, Delete, Power Toggle, Scent Interval Control)
   * [x] Mood Management System (Full Change, Scent Change, Song Change, Color Change)
+  * [x] My Page System (Profile, Q&A, 1:1 Inquiry, Privacy Policy, Account Deletion)
   * [x] API Routes Implementation (All endpoints with mock responses)
   * [x] Backend API Integration Preparation (All routes ready for backend connection)
-  * [x] Mood Generation Logic Documentation
 
 ### **P3 – Enhancement & Release**
 
@@ -300,25 +307,51 @@ mood-manager/
 
 ## Getting Started
 
-1.  **Install Dependencies:**
+### 필수 요구사항
+
+- **Node.js**: 18.x 이상 (권장: 22.21.0)
+- **npm**: 8.x 이상 (권장: 10.9.4)
+
+**Node.js 버전 확인**:
+```bash
+node --version
+```
+
+**nvm 사용 시** (프로젝트 루트에 `.nvmrc` 파일 포함):
+```bash
+nvm use
+```
+
+### 설치 및 실행
+
+1. **의존성 설치:**
 
     ```bash
     npm install
     ```
 
-2.  **Run Development Server:**
+2. **환경 변수 설정:**
+
+    프로젝트 루트에 `.env.local` 파일을 생성하고 다음 내용을 추가:
+
+    ```env
+    NEXTAUTH_URL=http://localhost:3000
+    NEXTAUTH_SECRET=your-secret-key-here
+    ```
+
+    자세한 환경 변수 설정은 `docs/SETUP_GUIDE.md`를 참고하세요.
+
+3. **개발 서버 실행:**
 
     ```bash
     npm run dev
     ```
 
-3.  **Environment Variables:**
-    Configure the following in your `.env` file:
+    브라우저에서 `http://localhost:3000`으로 접속할 수 있습니다.
 
-      * Firebase Configuration Keys
-      * NextAuth Providers (Google, Kakao, Naver)
-      * OpenAI API Key
-      * Backend URL (optional, for backend integration): `BACKEND_URL` or `NEXT_PUBLIC_BACKEND_URL`
+### 상세 설치 가이드
+
+자세한 설치 방법, 문제 해결, 버전 정보는 **[docs/SETUP_GUIDE.md](./docs/SETUP_GUIDE.md)**를 참고하세요.
 
 -----
 
@@ -340,9 +373,10 @@ NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
 
 The backend server should implement the following APIs (see `docs/API_SPEC.md` for detailed specifications):
 
-- **Authentication APIs**: Register, Login, Survey Status, Survey Submit, Survey Skip
-- **Device Management APIs**: List, Create, Delete, Power Toggle, Scent Level
+- **Authentication APIs**: Register, Login, Survey Status, Survey Submit, Survey Skip, Forgot Password, Profile, Account Deletion
+- **Device Management APIs**: List, Create, Delete, Power Toggle, Scent Interval
 - **Mood Management APIs**: Get Current, Update Full, Update Scent, Update Song, Update Color
+- **Inquiry APIs**: Submit 1:1 Inquiry
 
 ### Session Management
 
@@ -357,17 +391,24 @@ The backend server should implement the following APIs (see `docs/API_SPEC.md` f
 3. Remove mock response code
 4. Test API connectivity
 
-See `docs/API_VALIDATION.md` for detailed verification results.
 
 -----
 
 ## Documentation
 
-- `docs/API_SPEC.md` - Complete API specification (15 endpoints)
+자세한 문서는 `docs/` 디렉토리를 참고하세요.
+
+### 주요 문서
+- `docs/API_SPEC.md` - Complete API specification (21 endpoints)
 - `docs/API_ROUTES.md` - API routes structure guide
-- `docs/API_VALIDATION.md` - API validation report
-- `docs/MOOD_GENERATION_LOGIC.md` - Detailed mood generation logic
+- `docs/TODO.md` - Current tasks and priorities
+- `docs/PAGE_ROLES.md` - Page roles and implementation status
+- `docs/PAGE_COMPLETION_REVIEW.md` - Page implementation status
 - `docs/RESPONSIVE_DESIGN.md` - Responsive design guide
+- `docs/PROJECT_STRUCTURE.md` - Project structure guide
+- `docs/SETUP_GUIDE.md` - Installation and setup guide
+
+전체 문서 목록은 `docs/README.md`를 참고하세요.
 
 -----
 

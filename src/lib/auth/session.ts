@@ -15,6 +15,7 @@
 
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 /**
  * 세션 타입 정의
@@ -43,7 +44,7 @@ export interface AuthSession {
  */
 export async function getSession(): Promise<AuthSession | null> {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
 
     if (!session || !session.user) {
       return null;

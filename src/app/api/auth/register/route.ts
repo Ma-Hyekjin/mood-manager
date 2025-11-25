@@ -47,15 +47,17 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
+    const { familyName, name, birthDate, gender, email, password, provider, profileImageUrl } = body;
+
+    const isSocialSignup = !!provider; // 소셜 가입 여부
+
     // 1. 필수 필드 검증
-    const validation = validateRequiredFields(body, [
-      "familyName",
-      "name",
-      "birthDate",
-      "gender",
-      "email",
-      "password",
-    ]);
+    const requiredFields = ["familyName", "name", "birthDate", "gender", "email"];
+    if (!isSocialSignup) {
+      requiredFields.push("password"); // 일반 가입이면 비밀번호 필수
+    }
+
+    const validation = validateRequiredFields(body, requiredFields);
 
     if (!validation.valid) {
       return NextResponse.json(
@@ -66,8 +68,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    const { familyName, name, birthDate, gender, email, password } = body;
 
     // 2. 이메일 형식 검증
     if (!isValidEmail(email)) {
@@ -111,16 +111,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 6. 비밀번호 강도 검증
-    const passwordValidation = validatePasswordStrength(password);
-    if (!passwordValidation.valid) {
-      return NextResponse.json(
-        {
-          error: "WEAK_PASSWORD",
-          message: passwordValidation.message,
-        },
-        { status: 400 }
-      );
+    // 6. 비밀번호 강도 검증 (일반 가입만)
+    if (!isSocialSignup) {
+      const passwordValidation = validatePasswordStrength(password);
+      if (!passwordValidation.valid) {
+        return NextResponse.json(
+          {
+            error: "WEAK_PASSWORD",
+            message: passwordValidation.message,
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // 7. 이메일 중복 체크
@@ -138,19 +140,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 8. 비밀번호 해싱
-    const hashedPassword = await hashPassword(password);
+    // 8. 비밀번호 해싱 (일반 가입만)
+    let hashedPassword;
+    if (!isSocialSignup) {
+      hashedPassword = await hashPassword(password);
+    }
 
     // 9. 사용자 생성
     const user = await prisma.user.create({
       data: {
         email,
-        password: hashedPassword,
+        ...(hashedPassword && { password: hashedPassword }),
         familyName,
         givenName: name,
         birthDate: new Date(birthDate),
         gender: gender.toLowerCase(),
         hasSurvey: false, // 초기값: 설문 미완료
+        ...(provider && { provider }),
+        ...(profileImageUrl && { profileImageUrl }),
       },
     });
 

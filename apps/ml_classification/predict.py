@@ -1,14 +1,22 @@
-import torch
-import librosa
+import onnxruntime as ort
 import numpy as np
-import torch.nn.functional as F
-import os
-from transformers import Wav2Vec2ForSequenceClassification, Wav2Vec2FeatureExtractor
+import librosa
+import soundfile as sf
+import io
+import base64
+import json
+import firebase_admin
+from firebase_admin import credentials, firestore, initialize_app
+import requests
 
 # ======== Settings =========
-MODEL_PATH = "./saved_model"
+MODEL_PATH = "/var/task/onnx_model/model_quantized.onnx"           ## docker absolute path
 SAMPLE_RATE = 16000
-device = torch.device("cpu")
+
+WEB_SERVER_URL = "http://54.180.50.127/api/~"                      # have to update
+
+ort_session = None
+db = None
 
 # LabelMap
 LABELMAP = {
@@ -17,59 +25,96 @@ LABELMAP = {
     2: "Negative"
 }
 
-# ========= Model Load ========
-class AudioClassifier:
-    def __init__(self, model_path):
-        print(f"Loading model from {model_path}")
-        self.model = Wav2Vec2ForSequenceClassification.from_pretrained(model_path)
-        self.processor = Wav2Vec2FeatureExtractor.from_pretrained("facebook/wav2vec2-base")
-        self.model.eval()
+# ========= Resource Load ==========
+def load_resources():
+    global ort_session, db
 
-    def predict(self, file_path):
-        # 1. Audio Load & Resampling
-        try:
-            y, sr = librosa.load(file_path, sr=SAMPLE_RATE)
-        except Exception as e:
-            return f"Error occured {e}"
-        
-        # 2. Preprocessing
-        inputs = self.processor(y, sampling_rate=SAMPLE_RATE, return_tensors="pt")
-        input_values = inputs.input_values.to(device)
-
-        # 3. Model prediction
-        with torch.no_grad():
-            outputs = self.model(input_values)
-            logits = outputs.logits
-
-            # 4. Prob Calculation
-            probs = F.softmax(logits, dim=-1)
-
-            pred_idx = torch.argmax(probs, dim=-1).item()
-            confidence = probs[0][pred_idx].item() * 100
-
-        return {
-            "label": LABELMAP[pred_idx],
-            "confidence": f"{confidence:.2f}%",
-            "all_probs": {LABELMAP[i]: f"{probs[0][i].item()*100:.2f}%" for i in range(3)}
-        }
+    if ort_session is None:
+        print("ONNX Loading...")
+        ort_session = ort.InferenceSession(MODEL_PATH, providers=["CPUExecutionProvider"])
     
-# ========= Model Execute =========
-if __name__ == "__main__":
-    classifier = AudioClassifier(MODEL_PATH)
+    if db is None:
+        if not firebase_admin._apps:
+            cred = credentials.Certificate("./moodManagerCredKey.json")
+            initialize_app(cred)
+        db = firestore.client()
 
-    file_dir = "./"           # dir of file to classify
 
-    if os.path.exists(file_dir):
-        result = classifier.predict(file_dir)
+# ========= Prediction ==========
+def predict_onnx(base64_str):
+    try:
+        audio_bytes = base64.b64decode(base64_str)
 
-        print("\n" + "="*30)
-        print(f"file: {os.path.basename(file_dir)}")
-        print(f"result: {result['label']}")
-        print(f"confidence: {result['confidence']}")
-        print("-"*30)
-        print("Detail Prob")
-        for k, v in result['all_probs'].items():
-            print(f" -{k}:{v}")
-        print("="*30 + "\n")
-    else:
-        print(f"Cannot find files")
+        with io.BytesIO(audio_bytes) as byte_io:
+            y, sr = sf.read(byte_io)
+
+        if y.ndim > 1:          # ndim == dimension
+            y = y.mean(axis=1)
+        if sr != SAMPLE_RATE:
+            y = librosa.resample(y, orig_sr=sr, target_sr=SAMPLE_RATE)
+
+        # ONNX input
+        input_values = y.astype(np.float32)[np.newaxis, :]
+        input_name = ort_session.get_inputs()[0].name
+
+        # Execution
+        logits = ort_session.run(None, {input_name: input_values})[0]
+
+        # Softmax
+        def softmax(x):
+            e_x = np.exp(x - np.max(x))
+            return e_x / e_x.sum(axis=1, keepdims=True)
+        
+        probs = softmax(logits)
+        pred_idx = np.argmax(probs)
+        confidence = probs[0][pred_idx] * 100
+
+        return LABELMAP[pred_idx], confidence
+    except Exception as e:
+        print(f"Prediction Error: {e}")
+        return "error", 0.0
+
+    
+# ========== Access DB & Predict Transmit  ===========
+def lambda_handler(event, context):
+    load_resources()
+
+    processed_count = 0
+    error_count = 0
+
+    docs = db.collection("users").document("testUser").collection("raw_events").where('ml_processed', '==', 'pending').stream()
+    for doc in docs:
+        doc_id = doc.id
+        data = doc.to_dict()
+
+        doc.reference.update({'ml_processed': 'processing'})
+
+        if 'audio_base64' not in data:
+            doc.reference.update({'ml_processed': 'error'})
+            error_count += 1
+            continue
+
+        label, conf = predict_onnx(data['audio_base64'])
+
+        doc.reference.update({
+            'event_type_result': label,
+            'confidence': float(conf),
+            'ml_processed': 'done'
+        })
+        processed_count += 1
+        print(f"result: {label} ({conf:.2f}%)")
+        
+        # GET Web Server by Query String
+        try:
+            params = {
+                "docId": doc_id,
+                "result": label,
+                "confidence": conf
+            }
+
+            res = requests.get(WEB_SERVER_URL, params=params, timeout=3)
+            print(res.status_code)
+        except Exception as e:
+            print(e)
+
+    return f"Batch Job Complete: Processed {processed_count} docs, Errors {error_count}"

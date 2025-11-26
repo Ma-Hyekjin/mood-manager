@@ -157,26 +157,26 @@ export const authOptions: NextAuthOptions = {
 
           let existingUser = null;
 
-          // 1. 이메일로 기존 사용자 확인 (이메일이 있는 경우)
-          if (user.email) {
-            existingUser = await prisma.user.findUnique({
-              where: {
-                email: user.email,
-              },
-            });
-            console.log("[NextAuth signIn] Existing user by email:", existingUser ? `ID ${existingUser.id}` : "NOT FOUND");
-          } else {
-            console.log("[NextAuth signIn] No email provided, checking by providerId");
-          }
-
-          // 1-2. providerId로도 확인 (이미 가입된 소셜 계정)
-          if (!existingUser && account.providerAccountId) {
+          // 1. providerId로 먼저 확인 (이미 가입된 소셜 계정)
+          if (account.providerAccountId) {
             existingUser = await prisma.user.findUnique({
               where: {
                 providerId: account.providerAccountId,
               },
             });
             console.log("[NextAuth signIn] Existing user by providerId:", existingUser ? `ID ${existingUser.id}` : "NOT FOUND");
+          }
+
+          // 2. 이메일로 기존 사용자 확인 (이메일이 있는 경우)
+          if (!existingUser && user.email) {
+            existingUser = await prisma.user.findUnique({
+              where: {
+                email: user.email,
+              },
+            });
+            console.log("[NextAuth signIn] Existing user by email:", existingUser ? `ID ${existingUser.id}` : "NOT FOUND");
+          } else if (!existingUser) {
+            console.log("[NextAuth signIn] No email provided, checking by phone");
           }
 
           // 2. 이메일로 찾지 못했으면 전화번호로 조회 시도
@@ -399,8 +399,12 @@ export const authOptions: NextAuthOptions = {
             // user.id를 DB의 ID로 설정
             user.id = String(newUser.id);
           } else {
-            // 4. 기존 사용자 - provider 정보 업데이트 (선택)
-            if (!existingUser.provider || !existingUser.providerId) {
+            // 4. 기존 사용자 - provider 정보 업데이트
+            const oldProvider = existingUser.provider;
+            const oldProviderId = existingUser.providerId;
+
+            // 이메일/전화번호로 찾은 경우 또는 provider 정보가 다른 경우 업데이트
+            if (!oldProvider || oldProvider !== account.provider || oldProviderId !== account.providerAccountId) {
               await prisma.user.update({
                 where: { id: existingUser.id },
                 data: {
@@ -408,9 +412,16 @@ export const authOptions: NextAuthOptions = {
                   providerId: account.providerAccountId,
                 },
               });
-              console.log(
-                `[NextAuth signIn] Provider info updated for user: ${existingUser.email} (${account.provider})`
-              );
+
+              if (oldProvider && oldProvider !== account.provider) {
+                console.log(
+                  `[NextAuth signIn] ⚠️ Provider changed: ${oldProvider} → ${account.provider} for user ${existingUser.email}`
+                );
+              } else {
+                console.log(
+                  `[NextAuth signIn] ✅ Provider info linked: ${existingUser.email} → ${account.provider}`
+                );
+              }
             }
 
             // 5. user.id를 DB의 ID로 설정 (JWT에서 사용)
@@ -422,7 +433,7 @@ export const authOptions: NextAuthOptions = {
             }
 
             console.log(
-              `[NextAuth signIn] ✅ Existing social login user: ${user.email || existingUser.email} (${account.provider})`
+              `[NextAuth signIn] ✅ Existing user logged in: ${user.email || existingUser.email} (${account.provider})`
             );
           }
         } catch (error) {

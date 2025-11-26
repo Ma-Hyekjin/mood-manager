@@ -178,3 +178,60 @@ export function isValidLength(
 ): boolean {
   return value.length >= min && value.length <= max;
 }
+
+/**
+ * 전화번호를 정규화합니다.
+ * - 하이픈(-), 공백, 괄호 제거
+ * - +82 국가코드를 0으로 변환
+ * - 숫자만 남김
+ *
+ * @param phone - 정규화할 전화번호
+ * @returns 정규화된 전화번호 (예: "01012345678")
+ *
+ * @example
+ * normalizePhoneNumber("+82 10-1234-5678") // "01012345678"
+ * normalizePhoneNumber("010-1234-5678")    // "01012345678"
+ * normalizePhoneNumber("010 1234 5678")    // "01012345678"
+ */
+export function normalizePhoneNumber(phone: string): string {
+  if (!phone) return "";
+
+  // 1. 공백, 하이픈, 괄호 제거
+  let normalized = phone.replace(/[\s\-()]/g, "");
+
+  // 2. +82 국가코드 처리 (한국)
+  if (normalized.startsWith("+82")) {
+    normalized = "0" + normalized.substring(3);
+  } else if (normalized.startsWith("82")) {
+    normalized = "0" + normalized.substring(2);
+  }
+
+  // 3. 숫자만 남김
+  normalized = normalized.replace(/\D/g, "");
+
+  return normalized;
+}
+
+/**
+ * 한국 전화번호 형식이 유효한지 검증합니다.
+ * - 010, 011, 016, 017, 018, 019로 시작
+ * - 총 10자리 또는 11자리 숫자
+ *
+ * @param phone - 검증할 전화번호 (정규화된 형식)
+ * @returns 유효 여부 (true/false)
+ *
+ * @example
+ * if (!isValidPhoneNumber("01012345678")) {
+ *   return NextResponse.json({ error: "Invalid phone number" }, { status: 400 });
+ * }
+ */
+export function isValidPhoneNumber(phone: string): boolean {
+  if (!phone) return false;
+
+  // 정규화
+  const normalized = normalizePhoneNumber(phone);
+
+  // 한국 휴대폰 번호 형식: 010, 011, 016, 017, 018, 019로 시작, 10~11자리
+  const phoneRegex = /^01[0|1|6|7|8|9]\d{7,8}$/;
+  return phoneRegex.test(normalized);
+}

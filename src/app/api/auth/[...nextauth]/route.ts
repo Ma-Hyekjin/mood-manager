@@ -148,10 +148,12 @@ export const authOptions: NextAuthOptions = {
 
             // 프로바이더별 전화번호 추출
             if (account.provider === "kakao") {
-              const kakaoProfile = profile as any;
+              const kakaoProfile = profile as {
+                kakao_account?: { phone_number?: string };
+              };
               phoneNumber = kakaoProfile.kakao_account?.phone_number || "";
             } else if (account.provider === "naver") {
-              const naverProfile = profile as any;
+              const naverProfile = profile as { mobile?: string };
               phoneNumber = naverProfile.mobile || "";
             }
 
@@ -173,18 +175,14 @@ export const authOptions: NextAuthOptions = {
           }
 
           if (!existingUser) {
-            // 3. 신규 사용자 - 회원가입 페이지로 리다이렉트
+            // 3. 신규 사용자 - 로그인 거부
             console.log(
               `[NextAuth] New social login user detected: ${user.email} (${account.provider})`
             );
 
             // 로그인 거부 - 회원가입 필요
-            // 프론트엔드에서 에러를 감지하고 회원가입 페이지로 이동
-            return `/register?provider=${account.provider}&email=${encodeURIComponent(
-              user.email
-            )}&name=${encodeURIComponent(user.name || "")}&image=${encodeURIComponent(
-              user.image || ""
-            )}`;
+            // 프론트엔드에서 에러를 감지하고 회원가입 페이지로 리다이렉트
+            return false;
           } else {
             // 4. 기존 사용자 - provider 정보 업데이트 (선택)
             if (!existingUser.provider || !existingUser.providerId) {

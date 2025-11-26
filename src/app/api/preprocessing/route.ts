@@ -121,7 +121,7 @@ export async function GET() {
           },
         }),
 
-        preferences,
+        userPreferences: preferences,  // 키 이름 변경: preferences → userPreferences
         mood_signals: signals,
       },
       { status: 200 }

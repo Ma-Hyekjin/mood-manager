@@ -21,6 +21,7 @@ import KakaoProvider from "next-auth/providers/kakao";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/auth/password";
+import { normalizePhoneNumber } from "@/lib/utils/validation";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || "development-secret-key-change-in-production",
@@ -137,12 +138,42 @@ export const authOptions: NextAuthOptions = {
       if (account?.provider !== "credentials" && user.email && account) {
         try {
           // 1. 이메일로 기존 사용자 확인
-          const existingUser = await prisma.user.findUnique({
+          let existingUser = await prisma.user.findUnique({
             where: { email: user.email },
           });
 
+          // 2. 이메일로 찾지 못했으면 전화번호로 조회 시도
+          if (!existingUser && profile) {
+            let phoneNumber = "";
+
+            // 프로바이더별 전화번호 추출
+            if (account.provider === "kakao") {
+              const kakaoProfile = profile as any;
+              phoneNumber = kakaoProfile.kakao_account?.phone_number || "";
+            } else if (account.provider === "naver") {
+              const naverProfile = profile as any;
+              phoneNumber = naverProfile.mobile || "";
+            }
+
+            // 전화번호가 있으면 정규화 후 조회
+            if (phoneNumber) {
+              const normalizedPhone = normalizePhoneNumber(phoneNumber);
+              if (normalizedPhone) {
+                existingUser = await prisma.user.findUnique({
+                  where: { phone: normalizedPhone },
+                });
+
+                if (existingUser) {
+                  console.log(
+                    `[NextAuth] Account linking via phone number: ${normalizedPhone} (${account.provider})`
+                  );
+                }
+              }
+            }
+          }
+
           if (!existingUser) {
-            // 2. 신규 사용자 - 회원가입 페이지로 리다이렉트
+            // 3. 신규 사용자 - 회원가입 페이지로 리다이렉트
             console.log(
               `[NextAuth] New social login user detected: ${user.email} (${account.provider})`
             );
@@ -155,7 +186,7 @@ export const authOptions: NextAuthOptions = {
               user.image || ""
             )}`;
           } else {
-            // 3. 기존 사용자 - provider 정보 업데이트 (선택)
+            // 4. 기존 사용자 - provider 정보 업데이트 (선택)
             if (!existingUser.provider || !existingUser.providerId) {
               await prisma.user.update({
                 where: { id: existingUser.id },
@@ -164,9 +195,12 @@ export const authOptions: NextAuthOptions = {
                   providerId: account.providerAccountId,
                 },
               });
+              console.log(
+                `[NextAuth] Provider info updated for user: ${existingUser.email} (${account.provider})`
+              );
             }
 
-            // 4. user.id를 DB의 ID로 설정 (JWT에서 사용)
+            // 5. user.id를 DB의 ID로 설정 (JWT에서 사용)
             user.id = String(existingUser.id);
 
             console.log(

@@ -24,6 +24,8 @@ import {
   isValidGender,
   calculateAge,
   validateRequiredFields,
+  normalizePhoneNumber,
+  isValidPhoneNumber,
 } from "@/lib/utils/validation";
 
 /**
@@ -37,17 +39,24 @@ import {
  * - birthDate (required): 생년월일 (YYYY-MM-DD)
  * - gender (required): 성별 ("male" | "female")
  * - email (required): 이메일 주소
- * - password (required): 비밀번호 (최소 6자)
+ * - password (required for credentials): 비밀번호 (최소 6자, 일반 가입만)
+ * - phone (optional): 전화번호 (하이픈 포함 가능, 자동 정규화됨)
+ * - provider (optional): 소셜 로그인 제공자 ("google" | "kakao" | "naver")
+ * - profileImageUrl (optional): 프로필 이미지 URL
+ *
+ * 특수 기능:
+ * - 소셜 가입 + 전화번호 제공 시: 기존 계정과 자동 연결 (전화번호 기준)
  *
  * 응답:
  * - 성공: { success: true, user: { id, email, familyName, name } }
+ * - 계정 연결: { success: true, linked: true, user: { ... } }
  * - 실패: { error: "ERROR_CODE", message: "에러 메시지" }
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const { familyName, name, birthDate, gender, email, password, provider, profileImageUrl } = body;
+    const { familyName, name, birthDate, gender, email, password, phone, provider, profileImageUrl } = body;
 
     const isSocialSignup = !!provider; // 소셜 가입 여부
 
@@ -77,7 +86,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. 날짜 형식 검증
+    // 3. 전화번호 정규화 및 검증 (제공된 경우)
+    let normalizedPhone = "";
+    if (phone) {
+      normalizedPhone = normalizePhoneNumber(phone);
+      if (!isValidPhoneNumber(normalizedPhone)) {
+        return NextResponse.json(
+          {
+            error: "INVALID_PHONE",
+            message: "유효하지 않은 전화번호 형식입니다.",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // 4. 날짜 형식 검증
     if (!isValidDate(birthDate)) {
       return NextResponse.json(
         {
@@ -88,7 +112,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. 만 나이 검증 (최소 12세 이상)
+    // 5. 만 나이 검증 (최소 12세 이상)
     const age = calculateAge(birthDate);
     if (age < 12) {
       return NextResponse.json(
@@ -100,7 +124,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. 성별 검증
+    // 6. 성별 검증
     if (!isValidGender(gender)) {
       return NextResponse.json(
         {
@@ -111,7 +135,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 6. 비밀번호 강도 검증 (일반 가입만)
+    // 7. 비밀번호 강도 검증 (일반 가입만)
     if (!isSocialSignup) {
       const passwordValidation = validatePasswordStrength(password);
       if (!passwordValidation.valid) {
@@ -125,7 +149,40 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 7. 이메일 중복 체크
+    // 8. 소셜 가입 + 전화번호가 있는 경우: 기존 계정과 연결 시도
+    if (isSocialSignup && normalizedPhone) {
+      const existingUserByPhone = await prisma.user.findUnique({
+        where: { phone: normalizedPhone },
+      });
+
+      if (existingUserByPhone) {
+        // 기존 계정에 소셜 로그인 provider 정보 추가 (계정 연결)
+        const updatedUser = await prisma.user.update({
+          where: { id: existingUserByPhone.id },
+          data: {
+            provider,
+            ...(profileImageUrl && { profileImageUrl }),
+          },
+        });
+
+        console.log(
+          `[POST /api/auth/register] Account linked via phone number: ${normalizedPhone} (${provider})`
+        );
+
+        return NextResponse.json({
+          success: true,
+          linked: true, // 계정 연결 플래그
+          user: {
+            id: String(updatedUser.id),
+            email: updatedUser.email,
+            familyName: updatedUser.familyName,
+            name: updatedUser.givenName,
+          },
+        });
+      }
+    }
+
+    // 9. 이메일 중복 체크
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
@@ -140,17 +197,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 8. 비밀번호 해싱 (일반 가입만)
+    // 10. 전화번호 중복 체크 (제공된 경우)
+    if (normalizedPhone) {
+      const existingUserByPhone = await prisma.user.findUnique({
+        where: { phone: normalizedPhone },
+      });
+
+      if (existingUserByPhone) {
+        return NextResponse.json(
+          {
+            error: "PHONE_ALREADY_EXISTS",
+            message: "이미 사용 중인 전화번호입니다.",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // 11. 비밀번호 해싱 (일반 가입만)
     let hashedPassword;
     if (!isSocialSignup) {
       hashedPassword = await hashPassword(password);
     }
 
-    // 9. 사용자 생성
+    // 12. 사용자 생성
     const user = await prisma.user.create({
       data: {
         email,
         ...(hashedPassword && { password: hashedPassword }),
+        ...(normalizedPhone && { phone: normalizedPhone }),
         familyName,
         givenName: name,
         birthDate: new Date(birthDate),
@@ -161,7 +236,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // 10. 성공 응답 (비밀번호 제외)
+    // 13. 성공 응답 (비밀번호 제외)
     return NextResponse.json({
       success: true,
       user: {

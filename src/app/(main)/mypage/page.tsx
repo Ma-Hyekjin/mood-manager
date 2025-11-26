@@ -67,12 +67,41 @@ export default function MyPage() {
     setIsDeleting(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // API 호출: 회원탈퇴
+      const response = await fetch("/api/auth/account", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          confirmText: deleteConfirmText,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to delete account");
+      }
+
+      // 회원탈퇴 성공 시
+      toast.success("Account deleted successfully");
+
+      // 세션 종료 및 캐시 클리어
       await signOut({ redirect: false });
+      if (typeof window !== "undefined") {
+        localStorage.clear();
+        sessionStorage.clear();
+      }
+
+      // 로그인 페이지로 리다이렉트
       router.push("/login");
     } catch (error) {
       console.error("Error deleting account:", error);
-      toast.error("Failed to delete account. Please try again.");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete account. Please try again."
+      );
     } finally {
       setIsDeleting(false);
       setShowDeleteConfirm(false);

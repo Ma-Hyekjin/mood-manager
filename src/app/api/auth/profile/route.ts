@@ -47,6 +47,7 @@ export async function GET(_request: NextRequest) {
         familyName: true,
         birthDate: true,
         gender: true,
+        phone: true,
         profileImageUrl: true,
         createdAt: true,
       },
@@ -73,6 +74,7 @@ export async function GET(_request: NextRequest) {
           : user.gender === "female"
             ? "Female"
             : null,
+      phone: user.phone || null,
       createdAt: user.createdAt.toISOString().split("T")[0],
       profileImageUrl: user.profileImageUrl || null,
     };
@@ -98,6 +100,9 @@ export async function GET(_request: NextRequest) {
  * 요청 (FormData):
  * - name (required): 사용자 이름
  * - familyName (required): 사용자 성
+ * - birthDate (optional): 생년월일 (YYYY-MM-DD)
+ * - gender (optional): 성별 (male | female)
+ * - phone (optional): 전화번호
  * - profileImage (optional): 프로필 사진 파일 (최대 5MB)
  *
  * 응답:
@@ -121,6 +126,9 @@ export async function PUT(request: NextRequest) {
     const formData = await request.formData();
     const name = formData.get("name") as string;
     const familyName = formData.get("familyName") as string;
+    const birthDateStr = formData.get("birthDate") as string | null;
+    const gender = formData.get("gender") as string | null;
+    const phone = formData.get("phone") as string | null;
     const profileImage = formData.get("profileImage") as File | null;
 
     // 3. 필수 필드 검증
@@ -129,6 +137,32 @@ export async function PUT(request: NextRequest) {
         {
           error: "INVALID_INPUT",
           message: "이름과 성은 필수 입력 항목입니다.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // 3-1. 생년월일 검증 (제공된 경우)
+    let birthDate: Date | undefined = undefined;
+    if (birthDateStr) {
+      birthDate = new Date(birthDateStr);
+      if (isNaN(birthDate.getTime())) {
+        return NextResponse.json(
+          {
+            error: "INVALID_INPUT",
+            message: "유효하지 않은 생년월일 형식입니다.",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // 3-2. 성별 검증 (제공된 경우)
+    if (gender && gender !== "male" && gender !== "female") {
+      return NextResponse.json(
+        {
+          error: "INVALID_INPUT",
+          message: "성별은 male 또는 female이어야 합니다.",
         },
         { status: 400 }
       );
@@ -167,19 +201,34 @@ export async function PUT(request: NextRequest) {
     }
 
     // 5. 사용자 프로필 업데이트
+    const updateData: Record<string, unknown> = {
+      givenName: name.trim(),
+      familyName: familyName.trim(),
+    };
+
+    if (birthDate !== undefined) {
+      updateData.birthDate = birthDate;
+    }
+    if (gender) {
+      updateData.gender = gender.toLowerCase();
+    }
+    if (phone !== null) {
+      updateData.phone = phone.trim() || null; // 빈 문자열이면 null로 저장
+    }
+    if (profileImageUrl) {
+      updateData.profileImageUrl = profileImageUrl;
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: parseInt(session.user.id) },
-      data: {
-        givenName: name.trim(),
-        familyName: familyName.trim(),
-        ...(profileImageUrl && { profileImageUrl }),
-      },
+      data: updateData,
       select: {
         email: true,
         givenName: true,
         familyName: true,
         birthDate: true,
         gender: true,
+        phone: true,
         profileImageUrl: true,
         createdAt: true,
       },
@@ -199,6 +248,7 @@ export async function PUT(request: NextRequest) {
           : updatedUser.gender === "female"
             ? "Female"
             : null,
+      phone: updatedUser.phone || null,
       createdAt: updatedUser.createdAt.toISOString().split("T")[0],
       profileImageUrl: updatedUser.profileImageUrl || null,
     };

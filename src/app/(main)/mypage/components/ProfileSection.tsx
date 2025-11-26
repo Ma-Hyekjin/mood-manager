@@ -20,8 +20,9 @@ interface UserProfile {
   email: string;
   name: string;
   familyName: string;
-  birthDate: string;
-  gender: string;
+  birthDate: string | null;
+  gender: string | null;
+  phone: string | null;
   createdAt: string;
   profileImageUrl?: string | null;
 }
@@ -31,6 +32,9 @@ interface ProfileSectionProps {
   isEditingProfile: boolean;
   editedName: string;
   editedFamilyName: string;
+  editedBirthDate: string;
+  editedGender: "male" | "female" | "";
+  editedPhone: string;
   profileImage: string | null;
   isUpdating: boolean;
   onEditClick: () => void;
@@ -39,6 +43,9 @@ interface ProfileSectionProps {
   onImageChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onNameChange: (value: string) => void;
   onFamilyNameChange: (value: string) => void;
+  onBirthDateChange: (value: string) => void;
+  onGenderChange: (value: "male" | "female") => void;
+  onPhoneChange: (value: string) => void;
 }
 
 export default function ProfileSection({
@@ -46,6 +53,9 @@ export default function ProfileSection({
   isEditingProfile,
   editedName,
   editedFamilyName,
+  editedBirthDate,
+  editedGender,
+  editedPhone,
   profileImage,
   isUpdating,
   onEditClick,
@@ -54,6 +64,9 @@ export default function ProfileSection({
   onImageChange,
   onNameChange,
   onFamilyNameChange,
+  onBirthDateChange,
+  onGenderChange,
+  onPhoneChange,
 }: ProfileSectionProps) {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -176,25 +189,95 @@ export default function ProfileSection({
 
       {/* Profile Details */}
       <div className="space-y-3">
+        {/* Email (읽기 전용) */}
         <div className="flex items-center text-sm">
           <Mail size={16} className="text-gray-400 mr-3" />
           <span className="text-gray-600">{profile?.email}</span>
         </div>
+
+        {/* Birth Date */}
         <div className="flex items-center text-sm">
-          <Calendar size={16} className="text-gray-400 mr-3" />
-          <span className="text-gray-600">
-            {profile?.birthDate
-              ? new Date(profile.birthDate).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })
-              : "-"}
-          </span>
+          <Calendar size={16} className="text-gray-400 mr-3 flex-shrink-0" />
+          {isEditingProfile ? (
+            <input
+              type="date"
+              value={editedBirthDate}
+              onChange={(e) => onBirthDateChange(e.target.value)}
+              className="flex-1 px-2 py-1 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-black"
+            />
+          ) : (
+            <span className="text-gray-600">
+              {profile?.birthDate
+                ? new Date(profile.birthDate).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })
+                : "-"}
+            </span>
+          )}
         </div>
+
+        {/* Gender */}
         <div className="flex items-center text-sm">
-          <User size={16} className="text-gray-400 mr-3" />
-          <span className="text-gray-600">{profile?.gender || "-"}</span>
+          <User size={16} className="text-gray-400 mr-3 flex-shrink-0" />
+          {isEditingProfile ? (
+            <div className="flex gap-2 flex-1">
+              <button
+                type="button"
+                onClick={() => onGenderChange("male")}
+                className={`flex-1 px-3 py-1 text-sm border rounded-md transition ${
+                  editedGender === "male"
+                    ? "bg-black text-white border-black"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                Male
+              </button>
+              <button
+                type="button"
+                onClick={() => onGenderChange("female")}
+                className={`flex-1 px-3 py-1 text-sm border rounded-md transition ${
+                  editedGender === "female"
+                    ? "bg-black text-white border-black"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                Female
+              </button>
+            </div>
+          ) : (
+            <span className="text-gray-600">{profile?.gender || "-"}</span>
+          )}
+        </div>
+
+        {/* Phone */}
+        <div className="flex items-center text-sm">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-gray-400 mr-3 flex-shrink-0"
+          >
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+          </svg>
+          {isEditingProfile ? (
+            <input
+              type="tel"
+              value={editedPhone}
+              onChange={(e) => onPhoneChange(e.target.value)}
+              placeholder={profile?.phone ? "" : "Add phone number"}
+              className="flex-1 px-2 py-1 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-black"
+            />
+          ) : (
+            <span className="text-gray-600">{profile?.phone || "-"}</span>
+          )}
         </div>
       </div>
     </div>

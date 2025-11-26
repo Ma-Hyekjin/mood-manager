@@ -39,6 +39,12 @@ export default function RegisterForm({ form }: RegisterFormProps) {
     emailError,
     passwordStrength,
     passwordsMatch,
+    isSocialSignup,
+    isEmailDisabled,
+    isNameDisabled,
+    isFamilyNameDisabled,
+    isBirthDateDisabled,
+    isGenderDisabled,
     setFamilyName,
     setName,
     setBirthDate,
@@ -71,6 +77,8 @@ export default function RegisterForm({ form }: RegisterFormProps) {
       <PersonalInfoSection
         familyName={familyName}
         name={name}
+        familyNameDisabled={isFamilyNameDisabled}
+        nameDisabled={isNameDisabled}
         onFamilyNameChange={(value) => {
           setFamilyName(value);
           setErrorMsg("");
@@ -87,6 +95,8 @@ export default function RegisterForm({ form }: RegisterFormProps) {
         birthDate={birthDate}
         birthDateError={birthDateError}
         gender={gender}
+        birthDateDisabled={isBirthDateDisabled}
+        genderDisabled={isGenderDisabled}
         onBirthDateChange={(value) => {
           const formatted = formatBirthDate(value);
           setBirthDate(formatted);
@@ -110,6 +120,7 @@ export default function RegisterForm({ form }: RegisterFormProps) {
       <EmailSection
         email={email}
         emailError={emailError}
+        emailDisabled={isEmailDisabled}
         onEmailChange={(value) => {
           setEmail(value);
           setErrorMsg("");
@@ -123,48 +134,53 @@ export default function RegisterForm({ form }: RegisterFormProps) {
         validateEmail={validateEmail}
       />
 
-      <PasswordSection
-        password={password}
-        passwordStrength={passwordStrength ?? ""}
-        passwordsMatch={passwordsMatch}
-        showPassword={showPassword}
-        onPasswordChange={(value) => {
-          setPassword(value);
-          setErrorMsg("");
-          setPasswordStrength(calculatePasswordStrength(value));
-          if (confirmPassword) {
-            setPasswordsMatch(value === confirmPassword);
-          }
-        }}
-        onShowPasswordToggle={() => setShowPassword(!showPassword)}
-        onErrorClear={() => setErrorMsg("")}
-        onEnterKey={() => {
-          if (isFormValid()) handleRegister();
-        }}
-        calculatePasswordStrength={wrappedCalculatePasswordStrength}
-        confirmPassword={confirmPassword}
-      />
+      {/* 소셜 가입이 아닐 때만 비밀번호 입력 */}
+      {!isSocialSignup && (
+        <>
+          <PasswordSection
+            password={password}
+            passwordStrength={passwordStrength ?? ""}
+            passwordsMatch={passwordsMatch}
+            showPassword={showPassword}
+            onPasswordChange={(value) => {
+              setPassword(value);
+              setErrorMsg("");
+              setPasswordStrength(calculatePasswordStrength(value));
+              if (confirmPassword) {
+                setPasswordsMatch(value === confirmPassword);
+              }
+            }}
+            onShowPasswordToggle={() => setShowPassword(!showPassword)}
+            onErrorClear={() => setErrorMsg("")}
+            onEnterKey={() => {
+              if (isFormValid()) handleRegister();
+            }}
+            calculatePasswordStrength={wrappedCalculatePasswordStrength}
+            confirmPassword={confirmPassword}
+          />
 
-      <ConfirmPasswordSection
-        confirmPassword={confirmPassword}
-        password={password}
-        passwordsMatch={passwordsMatch}
-        showConfirmPassword={showConfirmPassword}
-        onConfirmPasswordChange={(value) => {
-          setConfirmPassword(value);
-          setErrorMsg("");
-          if (value) {
-            setPasswordsMatch(password === value);
-          } else {
-            setPasswordsMatch(null);
-          }
-        }}
-        onShowConfirmPasswordToggle={() => setShowConfirmPassword(!showConfirmPassword)}
-        onErrorClear={() => setErrorMsg("")}
-        onEnterKey={() => {
-          if (isFormValid()) handleRegister();
-        }}
-      />
+          <ConfirmPasswordSection
+            confirmPassword={confirmPassword}
+            password={password}
+            passwordsMatch={passwordsMatch}
+            showConfirmPassword={showConfirmPassword}
+            onConfirmPasswordChange={(value) => {
+              setConfirmPassword(value);
+              setErrorMsg("");
+              if (value) {
+                setPasswordsMatch(password === value);
+              } else {
+                setPasswordsMatch(null);
+              }
+            }}
+            onShowConfirmPasswordToggle={() => setShowConfirmPassword(!showConfirmPassword)}
+            onErrorClear={() => setErrorMsg("")}
+            onEnterKey={() => {
+              if (isFormValid()) handleRegister();
+            }}
+          />
+        </>
+      )}
 
       {/* Error Message */}
       {errorMsg && <p className="text-red-500 text-sm">{errorMsg}</p>}

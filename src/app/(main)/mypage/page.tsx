@@ -34,11 +34,17 @@ export default function MyPage() {
     isEditingProfile,
     editedName,
     editedFamilyName,
+    editedBirthDate,
+    editedGender,
+    editedPhone,
     profileImage,
     isUpdating,
     setIsEditingProfile,
     setEditedName,
     setEditedFamilyName,
+    setEditedBirthDate,
+    setEditedGender,
+    setEditedPhone,
     handleImageChange,
     handleProfileUpdate,
     handleProfileCancel,
@@ -110,6 +116,9 @@ export default function MyPage() {
             isEditingProfile={isEditingProfile}
             editedName={editedName}
             editedFamilyName={editedFamilyName}
+            editedBirthDate={editedBirthDate}
+            editedGender={editedGender}
+            editedPhone={editedPhone}
             profileImage={profileImage}
             isUpdating={isUpdating}
             onEditClick={() => setIsEditingProfile(true)}
@@ -118,6 +127,9 @@ export default function MyPage() {
             onImageChange={handleImageChange}
             onNameChange={setEditedName}
             onFamilyNameChange={setEditedFamilyName}
+            onBirthDateChange={setEditedBirthDate}
+            onGenderChange={setEditedGender}
+            onPhoneChange={setEditedPhone}
           />
 
           {/* Menu Section */}

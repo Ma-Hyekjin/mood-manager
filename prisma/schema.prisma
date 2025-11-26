@@ -80,6 +80,10 @@ model Device {
 
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   preset Preset? @relation(fields: [currentPresetId], references: [id])
+
+  // 인덱스 추가 (성능 향상)
+  @@index([userId])
+  @@index([currentPresetId])
 }
 
 ///////////////////////////////////////////////////////
@@ -90,6 +94,7 @@ model Fragrance {
   id             Int      @id @default(autoincrement())
   name           String
   description    String?
+  color          String?  // 향의 대표 색상 (HEX 코드)
   intensityLevel Int
   operatingMin   Int
   componentsJson Json
@@ -107,11 +112,12 @@ model Light {
 }
 
 model Sound {
-  id      Int      @id @default(autoincrement())
-  name    String
-  fileUrl String
+  id       Int      @id @default(autoincrement())
+  name     String
+  fileUrl  String
+  duration Int?     // 곡 길이 (초 단위)
 
-  presets Preset[]
+  presets  Preset[]
 }
 
 ///////////////////////////////////////////////////////
@@ -125,9 +131,10 @@ model Preset {
   lightId      Int
   soundId      Int
   name         String
+  isDefault    Boolean  @default(false) // 기본 무드 설정 여부
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  updatedType  String?
+  updatedType  String?  // all | scent | song | color
 
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   fragrance  Fragrance @relation(fields: [fragranceId], references: [id])
@@ -135,6 +142,10 @@ model Preset {
   sound      Sound     @relation(fields: [soundId], references: [id])
 
   devices    Device[]
+
+  // 인덱스 추가 (성능 향상)
+  @@index([userId])
+  @@index([userId, isDefault])
 }
 
 ///////////////////////////////////////////////////////
@@ -167,13 +178,21 @@ model UserPreferences {
 ///////////////////////////////////////////////////////
 
 model Inquiry {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   userId    String
   subject   String
-  message   String
-  createdAt DateTime @default(now())
+  message   String    @db.Text
+  status    String    @default("pending") // pending | answered | closed
+  answer    String?   @db.Text // 관리자 답변
+  answeredBy String? // 답변한 관리자 ID
+  answeredAt DateTime? // 답변 일시
+  createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 인덱스 추가 (성능 향상)
+  @@index([userId])
+  @@index([status])
 }
 
 ///////////////////////////////////////////////////////

@@ -44,21 +44,48 @@ function getDefaultOutput(type: Device["type"]): Device["output"] {
 
 /**
  * 디바이스 관리 커스텀 훅
- * 
- * [MOCK] 목업 모드로 동작
- * TODO: 백엔드 API로 교체 필요
+ *
+ * DB 연동 버전 (실제 API 호출)
  */
-export function useDevices(initialDevices: Device[], currentMood: Mood) {
-  const [devices, setDevices] = useState<Device[]>(initialDevices);
+export function useDevices(currentMood: Mood) {
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // [MOCK] 무드 변경 시 디바이스 업데이트 (로컬 상태만 업데이트)
-  // TODO: 백엔드 API로 교체 필요
-  // API 명세:
-  // PUT /api/moods/current
-  // - 인증: NextAuth session (쿠키 기반)
-  // - 요청: { moodId: string }
-  // - 응답: { mood: Mood, updatedDevices: Device[] }
-  // - 설명: 무드를 변경하고 관련 디바이스 상태를 업데이트합니다 (색상, 음악, 향 모두 변경)
+  // 초기 로드: DB에서 디바이스 목록 가져오기
+  useEffect(() => {
+    const fetchDevices = async () => {
+      try {
+        const response = await fetch("/api/devices", {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch devices");
+        }
+
+        const data = await response.json();
+
+        // devices가 배열이면 설정, 아니면 빈 배열
+        if (Array.isArray(data.devices)) {
+          setDevices(data.devices);
+        } else {
+          setDevices([]);
+        }
+      } catch (error) {
+        console.error("Error fetching devices:", error);
+        // 에러 발생 시 빈 배열 유지
+        setDevices([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDevices();
+  }, []);
+
+  // 무드 변경 시 디바이스 업데이트 (로컬 상태만 업데이트)
+  // TODO: 백엔드 무드 API 구현 후 실제 API 호출로 변경
   useEffect(() => {
     setDevices((prev) =>
       prev.map((d) => {
@@ -85,96 +112,58 @@ export function useDevices(initialDevices: Device[], currentMood: Mood) {
         return d;
       })
     );
-
-    // const updateMood = async () => {
-    //   try {
-    //     const response = await fetch("/api/moods/current", {
-    //       method: "PUT",
-    //       headers: {
-    //         "Content-Type": "application/json",
-    //       },
-    //       credentials: "include",
-    //       body: JSON.stringify({ moodId: currentMood.id }),
-    //     });
-    //     if (!response.ok) throw new Error("Failed to update mood");
-    //     const data = await response.json();
-    //     setDevices(data.updatedDevices);
-    //   } catch (error) {
-    //     console.error("Error updating mood:", error);
-    //   }
-    // };
-    // updateMood();
   }, [currentMood]);
 
-  // [MOCK] 디바이스 추가 (로컬 상태만 업데이트)
-  // TODO: 백엔드 API로 교체 필요
-  // API 명세:
-  // POST /api/devices
-  // - 인증: NextAuth session (쿠키 기반)
-  // - 요청: { type: DeviceType, name?: string }
-  // - 응답: { device: Device }
-  // - 설명: 새 디바이스 생성 및 DB 저장
+  // 디바이스 추가 (DB에 저장)
   const addDevice = async (type: Device["type"], name?: string) => {
-    const countOfType = devices.filter((d) => d.type === type).length;
-    const defaultName =
-      name?.trim() !== "" ? name : `${type.charAt(0).toUpperCase() + type.slice(1)} ${countOfType + 1}`;
+    try {
+      const response = await fetch("/api/devices", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          type,
+          name: name?.trim() || undefined, // 빈 문자열이면 undefined로 전달 (백엔드에서 자동 생성)
+        }),
+      });
 
-    const newDevice: Device = {
-      id: `${type}-${Date.now()}`,
-      type,
-      name: defaultName || `${type.charAt(0).toUpperCase() + type.slice(1)} ${countOfType + 1}`,
-      battery: 100,
-      power: true,
-      output: getDefaultOutput(type),
-    };
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to create device");
+      }
 
-    // 우선순위 + 시간순 정렬
-    const sorted = [...devices, newDevice].sort((a, b) => {
-      if (PRIORITY[a.type] !== PRIORITY[b.type])
-        return PRIORITY[a.type] - PRIORITY[b.type];
+      const data = await response.json();
 
-      return Number(a.id.split("-")[1]) - Number(b.id.split("-")[1]);
-    });
+      // 새로 생성된 디바이스를 목록에 추가
+      setDevices((prev) => {
+        const updated = [...prev, data.device];
+        // 우선순위 + ID 순 정렬
+        return updated.sort((a, b) => {
+          if (PRIORITY[a.type] !== PRIORITY[b.type])
+            return PRIORITY[a.type] - PRIORITY[b.type];
 
-    setDevices(sorted);
-
-    // try {
-    //   const response = await fetch("/api/devices", {
-    //     method: "POST",
-    //     headers: {
-    //       "Content-Type": "application/json",
-    //     },
-    //     credentials: "include",
-    //     body: JSON.stringify({
-    //       type,
-    //       name: defaultName,
-    //     }),
-    //   });
-    //   if (!response.ok) {
-    //     const error = await response.json();
-    //     throw new Error(error.message || "Failed to create device");
-    //   }
-    //   const data = await response.json();
-    //   // 새로 생성된 디바이스를 목록에 추가
-    //   setDevices((prev) => {
-    //     const updated = [...prev, data.device];
-    //     return updated.sort((a, b) => {
-    //       if (PRIORITY[a.type] !== PRIORITY[b.type])
-    //         return PRIORITY[a.type] - PRIORITY[b.type];
-    //       return a.id.localeCompare(b.id);
-    //     });
-    //   });
-    // } catch (error) {
-    //   console.error("Error creating device:", error);
-    //   // 에러 발생 시 사용자에게 알림 (토스트 메시지 등)
-    //   alert("디바이스 생성에 실패했습니다. 다시 시도해주세요.");
-    // }
+          // ID가 숫자 형태면 숫자로 비교, 아니면 문자열로 비교
+          const aId = Number(a.id);
+          const bId = Number(b.id);
+          if (!isNaN(aId) && !isNaN(bId)) {
+            return aId - bId;
+          }
+          return a.id.localeCompare(b.id);
+        });
+      });
+    } catch (error) {
+      console.error("Error creating device:", error);
+      // 에러 발생 시 사용자에게 알림
+      alert("디바이스 생성에 실패했습니다. 다시 시도해주세요.");
+    }
   };
 
   return {
     devices,
     setDevices,
     addDevice,
+    isLoading,
   };
 }
-

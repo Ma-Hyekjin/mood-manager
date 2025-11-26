@@ -1,63 +1,94 @@
+// src/app/api/devices/[deviceId]/route.ts
+/**
+ * [파일 역할]
+ * - 디바이스 삭제 API
+ * - DELETE: 디바이스 삭제
+ *
+ * [사용되는 위치]
+ * - 디바이스 관리 페이지에서 디바이스 삭제 시 사용
+ *
+ * [주의사항]
+ * - 인증이 필요한 엔드포인트
+ * - 디바이스 소유자만 삭제 가능
+ * - 소프트 삭제 방식 사용 (status를 inactive로 변경)
+ */
+
 import { NextRequest, NextResponse } from "next/server";
-// import { getServerSession } from "next-auth"; // TODO: 백엔드 API 연동 시 사용
+import { requireAuth } from "@/lib/auth/session";
+import { prisma } from "@/lib/prisma";
 
 /**
  * DELETE /api/devices/:deviceId
- * 
- * 디바이스 삭제 API
- * 
- * TODO: 백엔드 서버로 요청을 프록시하거나 직접 호출하도록 구현
- * 
- * 구현 내용:
- * 1. NextAuth 세션 확인 (인증 필수)
- * 2. URL 파라미터에서 deviceId 추출
- * 3. 백엔드 서버로 DELETE 요청 전달
- *    - URL: ${BACKEND_URL}/api/devices/${deviceId}
- *    - Headers: 세션 정보 포함
- * 4. 백엔드 응답을 그대로 반환
- *    - 응답: { success: boolean }
- * 5. 권한 확인 (본인의 디바이스인지 확인 - 백엔드에서 처리)
- * 
- * 참고:
- * - 인증이 필요한 엔드포인트
- * - 디바이스 소유자만 삭제 가능 (백엔드에서 검증)
- * - 삭제 시 관련 데이터도 함께 삭제
+ *
+ * 디바이스 삭제
+ *
+ * 응답:
+ * - 성공: { success: true }
+ * - 실패: { error: "ERROR_CODE", message: "에러 메시지" }
  */
 export async function DELETE(
   _request: NextRequest,
-  { params: _params }: { params: Promise<{ deviceId: string }> }
+  { params }: { params: Promise<{ deviceId: string }> }
 ) {
-  // [MOCK] 목업 모드: 항상 성공 응답 반환
-  // TODO: 백엔드 API 연동 시 아래 주석 해제하고 목업 코드 제거
-  //
-  // const session = await getServerSession();
-  //
-  // if (!session) {
-  //   return NextResponse.json(
-  //     { error: "UNAUTHORIZED", message: "Authentication required" },
-  //     { status: 401 }
-  //   );
-  // }
-  //
-  // const { deviceId } = params;
-  //
-  // const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
-  // const response = await fetch(`${backendUrl}/api/devices/${deviceId}`, {
-  //   method: "DELETE",
-  //   headers: {
-  //     "Cookie": request.headers.get("cookie") || "",
-  //   },
-  // });
-  //
-  // if (!response.ok) {
-  //   const error = await response.json();
-  //   return NextResponse.json(error, { status: response.status });
-  // }
-  //
-  // const data = await response.json();
-  // return NextResponse.json(data);
+  try {
+    // 1. 세션 검증
+    const sessionOrError = await requireAuth();
+    if (sessionOrError instanceof NextResponse) {
+      return sessionOrError; // 401 응답 반환
+    }
+    const session = sessionOrError;
 
-  // 목업 응답: 삭제 성공
-  return NextResponse.json({ success: true });
+    // 2. URL 파라미터 추출
+    const { deviceId } = await params;
+    const deviceIdNum = parseInt(deviceId);
+
+    if (isNaN(deviceIdNum)) {
+      return NextResponse.json(
+        {
+          error: "INVALID_INPUT",
+          message: "유효하지 않은 디바이스 ID입니다.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // 3. 디바이스 존재 여부 및 소유자 확인
+    const device = await prisma.device.findUnique({
+      where: { id: deviceIdNum },
+    });
+
+    if (!device) {
+      return NextResponse.json(
+        { error: "DEVICE_NOT_FOUND", message: "디바이스를 찾을 수 없습니다." },
+        { status: 404 }
+      );
+    }
+
+    if (device.userId !== parseInt(session.user.id)) {
+      return NextResponse.json(
+        {
+          error: "FORBIDDEN",
+          message: "디바이스를 삭제할 권한이 없습니다.",
+        },
+        { status: 403 }
+      );
+    }
+
+    // 4. 디바이스 삭제 (소프트 삭제: status를 inactive로 변경)
+    await prisma.device.update({
+      where: { id: deviceIdNum },
+      data: { status: "inactive" },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("[DELETE /api/devices/:deviceId] 디바이스 삭제 실패:", error);
+    return NextResponse.json(
+      {
+        error: "INTERNAL_ERROR",
+        message: "디바이스 삭제 중 오류가 발생했습니다.",
+      },
+      { status: 500 }
+    );
+  }
 }
-

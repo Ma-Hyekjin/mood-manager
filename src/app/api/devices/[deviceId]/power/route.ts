@@ -44,17 +44,6 @@ export async function PUT(
 
     // 2. URL 파라미터 추출
     const { deviceId } = await params;
-    const deviceIdNum = parseInt(deviceId);
-
-    if (isNaN(deviceIdNum)) {
-      return NextResponse.json(
-        {
-          error: "INVALID_INPUT",
-          message: "유효하지 않은 디바이스 ID입니다.",
-        },
-        { status: 400 }
-      );
-    }
 
     // 3. 요청 본문 파싱
     const body = await request.json();
@@ -83,17 +72,17 @@ export async function PUT(
 
     // 4. 디바이스 존재 여부 및 소유자 확인
     const device = await prisma.device.findUnique({
-      where: { id: deviceIdNum },
+      where: { id: deviceId },
     });
 
-    if (!device || device.status === "inactive") {
+    if (!device) {
       return NextResponse.json(
         { error: "DEVICE_NOT_FOUND", message: "디바이스를 찾을 수 없습니다." },
         { status: 404 }
       );
     }
 
-    if (device.userId !== parseInt(session.user.id)) {
+    if (device.userId !== session.user.id) {
       return NextResponse.json(
         {
           error: "FORBIDDEN",
@@ -105,13 +94,13 @@ export async function PUT(
 
     // 5. 전원 상태 업데이트
     const updatedDevice = await prisma.device.update({
-      where: { id: deviceIdNum },
+      where: { id: deviceId },
       data: { power },
     });
 
     // 6. 응답 데이터 포맷팅
     const formattedDevice = {
-      id: updatedDevice.id.toString(),
+      id: updatedDevice.id,
       type: updatedDevice.type,
       name: updatedDevice.name,
       battery: updatedDevice.battery ?? 100,

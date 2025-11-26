@@ -10,7 +10,7 @@
  * [주의사항]
  * - 인증이 필요한 엔드포인트
  * - 디바이스 소유자만 삭제 가능
- * - 소프트 삭제 방식 사용 (status를 inactive로 변경)
+ * - Hard Delete 방식 사용 (DB에서 완전 삭제)
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -40,21 +40,10 @@ export async function DELETE(
 
     // 2. URL 파라미터 추출
     const { deviceId } = await params;
-    const deviceIdNum = parseInt(deviceId);
-
-    if (isNaN(deviceIdNum)) {
-      return NextResponse.json(
-        {
-          error: "INVALID_INPUT",
-          message: "유효하지 않은 디바이스 ID입니다.",
-        },
-        { status: 400 }
-      );
-    }
 
     // 3. 디바이스 존재 여부 및 소유자 확인
     const device = await prisma.device.findUnique({
-      where: { id: deviceIdNum },
+      where: { id: deviceId },
     });
 
     if (!device) {
@@ -64,7 +53,7 @@ export async function DELETE(
       );
     }
 
-    if (device.userId !== parseInt(session.user.id)) {
+    if (device.userId !== session.user.id) {
       return NextResponse.json(
         {
           error: "FORBIDDEN",
@@ -74,10 +63,9 @@ export async function DELETE(
       );
     }
 
-    // 4. 디바이스 삭제 (소프트 삭제: status를 inactive로 변경)
-    await prisma.device.update({
-      where: { id: deviceIdNum },
-      data: { status: "inactive" },
+    // 4. 디바이스 삭제 (Hard Delete)
+    await prisma.device.delete({
+      where: { id: deviceId },
     });
 
     return NextResponse.json({ success: true });

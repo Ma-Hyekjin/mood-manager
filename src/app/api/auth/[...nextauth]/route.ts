@@ -42,7 +42,9 @@ export const authOptions: NextAuthOptions = {
         try {
           // 1. DB에서 사용자 조회
           const user = await prisma.user.findUnique({
-            where: { email: credentials.email },
+            where: {
+              email: credentials.email,
+            },
             select: {
               id: true,
               email: true,
@@ -158,7 +160,9 @@ export const authOptions: NextAuthOptions = {
           // 1. 이메일로 기존 사용자 확인 (이메일이 있는 경우)
           if (user.email) {
             existingUser = await prisma.user.findUnique({
-              where: { email: user.email },
+              where: {
+                email: user.email,
+              },
             });
             console.log("[NextAuth signIn] Existing user by email:", existingUser ? `ID ${existingUser.id}` : "NOT FOUND");
           } else {
@@ -168,7 +172,9 @@ export const authOptions: NextAuthOptions = {
           // 1-2. providerId로도 확인 (이미 가입된 소셜 계정)
           if (!existingUser && account.providerAccountId) {
             existingUser = await prisma.user.findUnique({
-              where: { providerId: account.providerAccountId },
+              where: {
+                providerId: account.providerAccountId,
+              },
             });
             console.log("[NextAuth signIn] Existing user by providerId:", existingUser ? `ID ${existingUser.id}` : "NOT FOUND");
           }
@@ -201,7 +207,9 @@ export const authOptions: NextAuthOptions = {
 
               if (normalizedPhone) {
                 existingUser = await prisma.user.findUnique({
-                  where: { phone: normalizedPhone },
+                  where: {
+                    phone: normalizedPhone,
+                  },
                 });
 
                 if (existingUser) {

@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     // 4. 문의 생성
     const inquiry = await prisma.inquiry.create({
       data: {
-        userId: parseInt(session.user.id),
+        userId: session.user.id,
         subject: subject.trim(),
         message: message.trim(),
       },

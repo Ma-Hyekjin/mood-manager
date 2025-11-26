@@ -40,7 +40,7 @@ export async function GET(_request: NextRequest) {
 
     // 2. 사용자 프로필 조회
     const user = await prisma.user.findUnique({
-      where: { id: parseInt(session.user.id) },
+      where: { id: session.user.id },
       select: {
         email: true,
         givenName: true,
@@ -220,7 +220,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const updatedUser = await prisma.user.update({
-      where: { id: parseInt(session.user.id) },
+      where: { id: session.user.id },
       data: updateData,
       select: {
         email: true,

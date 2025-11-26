@@ -17,9 +17,12 @@
 
 "use client";
 
+import { useState } from "react";
 import { MoodDashboardSkeleton } from "@/components/ui/Skeleton";
 import type { Mood } from "@/types/mood";
 import { useMoodDashboard } from "./hooks/useMoodDashboard";
+import { useMoodStream } from "@/hooks/useMoodStream";
+import { useBackgroundParams } from "@/hooks/useBackgroundParams";
 import MoodHeader from "./components/MoodHeader";
 import ScentControl from "./components/ScentControl";
 import AlbumSection from "./components/AlbumSection";
@@ -39,6 +42,19 @@ export default function MoodDashboard({
   onScentChange,
   onSongChange,
 }: MoodDashboardProps) {
+  // 무드스트림 관리
+  const {
+    moodStream,
+    currentSegment,
+    currentSegmentIndex,
+    isLoading: isLoadingStream,
+    refreshMoodStream,
+    setCurrentSegmentIndex,
+  } = useMoodStream();
+  
+  // 새로고침 버튼 클릭 여부 추적
+  const [shouldFetchLLM, setShouldFetchLLM] = useState(false);
+  
   const {
     isLoading,
     playing,
@@ -52,32 +68,85 @@ export default function MoodDashboard({
     handleNextSong,
     handleRefreshClick,
     handleAlbumClick,
+    handlePreferenceClick,
+    preferenceCount,
+    maxReached,
   } = useMoodDashboard({
     mood,
     onMoodChange,
     onScentChange,
     onSongChange,
+    currentSegment,
   });
 
+  // 새로고침 버튼 핸들러 래핑
+  const handleRefreshWithStream = () => {
+    setShouldFetchLLM(true); // OpenAI 호출 플래그 설정
+    refreshMoodStream(); // 무드스트림 재생성
+    handleRefreshClick(); // 기존 로직 실행
+  };
+
+  // LLM 배경 파라미터 가져오기 (새로고침 버튼 클릭 시에만)
+  const { backgroundParams, isLoading: isLoadingParams } = useBackgroundParams(
+    moodStream,
+    shouldFetchLLM
+  );
+  
+  // OpenAI 호출 완료 후 플래그 리셋
+  if (shouldFetchLLM && !isLoadingParams && backgroundParams) {
+    setShouldFetchLLM(false);
+  }
+
   // 로딩 중 스켈레톤 표시
-  if (isLoading) {
+  if (isLoading || isLoadingStream) {
     return <MoodDashboardSkeleton />;
   }
+
+  // LLM 배경 파라미터가 있으면 사용, 없으면 기본값
+  // (스프레이/앨범 버튼 클릭 시에는 기존 파라미터 유지)
+  const displayColor = backgroundParams?.moodColor || mood.color;
+  const displayAlias = backgroundParams?.moodAlias || mood.name;
+  const llmSource = backgroundParams?.source;
+
+  // 세그먼트 선택 시: 해당 세그먼트로 바로 점프
+  const handleSegmentSelect = (index: number) => {
+    if (!moodStream) return;
+
+    const clampedIndex =
+      index >= 0 && index < moodStream.segments.length
+        ? index
+        : moodStream.segments.length - 1;
+    setCurrentSegmentIndex(clampedIndex);
+    const target = moodStream.segments[clampedIndex];
+    if (target?.mood) {
+      onMoodChange({
+        ...mood,
+        ...target.mood,
+      });
+    }
+  };
 
   return (
     <div
       className="rounded-xl px-3 mb-1 w-full bg-white/80 backdrop-blur-sm border border-gray-200"
       style={{
-        background: `${mood.color}55`, // 50% opacity
+        background: `${displayColor}55`, // 50% opacity (LLM 추천 색상 사용)
         paddingTop: "11px", // 상단 패딩: 16px의 1/3 감소 (16 - 16/3 = 약 11px)
         paddingBottom: "8px", // 하단 패딩: 16px의 절반 (pb-4 = 16px → 8px)
       }}
     >
       <MoodHeader
-        mood={mood}
+        mood={{
+          ...mood,
+          name: displayAlias, // LLM 추천 별명 사용
+        }}
         isSaved={isSaved}
         onSaveToggle={() => setIsSaved(!isSaved)}
-        onRefresh={handleRefreshClick}
+        onRefresh={handleRefreshWithStream} // 무드스트림 재생성 포함
+        llmSource={llmSource}
+        onPreferenceClick={handlePreferenceClick}
+        preferenceCount={preferenceCount}
+        maxReached={maxReached}
       />
 
       <ScentControl mood={mood} onScentClick={handleScentClick} />
@@ -93,7 +162,13 @@ export default function MoodDashboard({
         onNext={handleNextSong}
       />
 
-      <MoodDuration mood={mood} duration={moodDuration} />
+      <MoodDuration
+        mood={mood}
+        duration={moodDuration}
+        currentIndex={currentSegmentIndex}
+        totalSegments={moodStream?.segments.length || 10}
+        onSegmentSelect={handleSegmentSelect}
+      />
     </div>
   );
 }

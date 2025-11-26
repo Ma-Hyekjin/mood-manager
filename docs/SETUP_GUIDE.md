@@ -286,9 +286,9 @@ git status
 설치가 완료되면 다음 문서를 참고하세요:
 
 1. **프로젝트 구조**: `docs/PROJECT_STRUCTURE.md`
-2. **API 명세**: `docs/API_SPEC.md`
-3. **페이지 역할**: `docs/PAGE_ROLES.md`
-4. **TODO**: `docs/TODO.md`
+2. **API 명세**: `docs/API_SPECIFICATION.md`
+3. **무드스트림 아키텍처**: `docs/MOOD_STREAM_ARCHITECTURE.md`
+4. **LLM 입력 파라미터**: `docs/LLM_INPUT_PARAMETERS.md`
 
 ---
 

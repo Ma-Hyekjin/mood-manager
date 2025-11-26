@@ -5,12 +5,14 @@
 import { useState, useEffect } from "react";
 import type { Mood } from "@/types/mood";
 import { MOODS } from "@/types/mood";
+import type { MoodStreamSegment } from "@/hooks/useMoodStream";
 
 interface UseMoodDashboardProps {
   mood: Mood;
   onMoodChange: (mood: Mood) => void;
   onScentChange: (mood: Mood) => void;
   onSongChange: (mood: Mood) => void;
+  currentSegment?: MoodStreamSegment | null;
 }
 
 /**
@@ -21,12 +23,34 @@ export function useMoodDashboard({
   onMoodChange,
   onScentChange,
   onSongChange,
+  currentSegment,
 }: UseMoodDashboardProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [playing, setPlaying] = useState(true);
   const [progress] = useState(20);
   const [isSaved, setIsSaved] = useState(false);
   const [moodDuration] = useState(30);
+  const [preferenceCount, setPreferenceCount] = useState(0); // 현재 무드의 선호도 카운트 (0-3)
+  const [maxReached, setMaxReached] = useState(false); // 최대 3번 도달 여부
+
+  // 무드 저장 상태 확인
+  useEffect(() => {
+    const checkSavedStatus = async () => {
+      try {
+        const response = await fetch("/api/moods/saved");
+        if (response.ok) {
+          const data = await response.json() as { savedMoods?: Array<{ moodId: string }> };
+          const isMoodSaved = data.savedMoods?.some(
+            (saved) => saved.moodId === mood.id
+          );
+          setIsSaved(isMoodSaved || false);
+        }
+      } catch (error) {
+        console.error("Error checking saved status:", error);
+      }
+    };
+    checkSavedStatus();
+  }, [mood.id]);
 
   // 초기 로딩 시뮬레이션 (실제로는 API 호출 시 사용)
   useEffect(() => {
@@ -36,21 +60,108 @@ export function useMoodDashboard({
     return () => clearTimeout(timer);
   }, []);
 
+  // 무드 변경 시 선호도 카운트 조회
+  useEffect(() => {
+    const fetchPreferenceCount = async () => {
+      try {
+        const response = await fetch("/api/moods/preference");
+        if (response.ok) {
+          const data = await response.json();
+          const moodCount = data.moodPreferences?.[mood.id] || 0;
+          setPreferenceCount(moodCount);
+          setMaxReached(moodCount >= 3);
+        }
+      } catch (error) {
+        console.error("Error fetching preference count:", error);
+      }
+    };
+    fetchPreferenceCount();
+  }, [mood.id]);
+
+  // 선호도 클릭 핸들러 (더블클릭 시 호출)
+  const handlePreferenceClick = async () => {
+    if (maxReached || preferenceCount >= 3) {
+      return;
+    }
+
+    try {
+      // 현재 세그먼트에서 음악 장르 가져오기 (없으면 기본값)
+      const musicGenre = currentSegment?.music?.genre || "newage";
+      const scentType = mood.scent.type;
+
+      const response = await fetch("/api/moods/preference", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          moodId: mood.id,
+          moodName: mood.name,
+          musicGenre,
+          scentType,
+          moodColor: mood.color,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.maxReached) {
+          setMaxReached(true);
+          setPreferenceCount(3);
+        }
+        throw new Error(errorData.error || "Failed to update preference");
+      }
+
+      const data = await response.json();
+      setPreferenceCount(data.currentCount);
+      setMaxReached(data.maxReached);
+    } catch (error) {
+      console.error("Error updating preference:", error);
+    }
+  };
+
   // 현재 무드의 같은 이름을 가진 다른 무드들 찾기
   const getMoodsWithSameName = (moodName: string) => {
     return MOODS.filter((m) => m.name === moodName);
   };
 
-  // [MOCK] 향 변경 (스프레이 아이콘 클릭)
-  // TODO: 백엔드 API로 교체 필요
-  // API 명세:
-  // PUT /api/moods/current/scent
-  // - 인증: NextAuth session (쿠키 기반)
-  // - 요청: { moodId: string } (같은 무드명의 다른 센트 버전)
-  // - 응답: { mood: Mood, updatedDevices: Device[] }
-  // - 설명: 센트 변경으로 인한 무드 업데이트 및 관련 디바이스 상태 업데이트
-  // - 동작: 향을 변경하면서 무드 듀레이션 내에서의 변경 (지속 시간 유지)
-  const handleScentClick = () => {
+  // 향 변경 (스프레이 아이콘 클릭)
+  // - 1순위: 현재 세그먼트를 기반으로 LLM에 요청 (mode: "scent")
+  // - 2순위: 실패 시 기존 목업 로직(MOODS 기반 순환) 사용
+  const handleScentClick = async () => {
+    // 1) LLM 기반 향/아이콘 재추천 (현재 세그먼트 기반)
+    if (currentSegment) {
+      try {
+        const response = await fetch("/api/ai/background-params", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mode: "scent",
+            segment: currentSegment,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const nextScentType = data.scentType || mood.scent.type;
+
+          // 기존 무드에 향 타입만 업데이트 (색상/이름은 그대로 유지)
+          const updatedMood: Mood = {
+            ...mood,
+            scent: {
+              ...mood.scent,
+              type: nextScentType,
+            },
+          };
+
+          onScentChange(updatedMood);
+          return;
+        }
+      } catch (error) {
+        console.error("Error updating scent via LLM:", error);
+        // 아래 목업 로직으로 fallback
+      }
+    }
+
+    // 2) [MOCK] 기존 로컬 무드 배열을 이용한 향 변경 (fallback)
     const sameNameMoods = getMoodsWithSameName(mood.name);
     
     // 같은 이름의 무드가 없거나 1개만 있으면 다른 무드로 변경하지 않음
@@ -157,38 +268,101 @@ export function useMoodDashboard({
     // refreshMood();
   };
 
-  // [MOCK] 앨범 클릭 시 다른 무드로 변경
-  // TODO: 백엔드 API로 교체 필요
-  // API 명세:
-  // PUT /api/moods/current
-  // - 인증: NextAuth session (쿠키 기반)
-  // - 요청: { moodId: string }
-  // - 응답: { mood: Mood, updatedDevices: Device[] }
-  // - 설명: 무드를 변경하고 관련 디바이스 상태를 업데이트합니다 (색상, 음악, 향 모두 변경)
-  const handleAlbumClick = () => {
-    // [MOCK] 목업 모드: 랜덤 무드 선택
+  // 앨범 클릭: 같은 장르 내 다른 음악 + 풍향/풍속 재추천 (현재 세그먼트 한정)
+  // - 1순위: LLM에 mode: "music"으로 요청
+  // - 2순위: 실패 시 기존 목업 로직(랜덤 무드) 사용
+  const handleAlbumClick = async () => {
+    if (currentSegment) {
+      try {
+        const response = await fetch("/api/ai/background-params", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mode: "music",
+            segment: currentSegment,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const nextTitle: string = data.musicSelection || mood.song.title;
+
+          const updatedMood: Mood = {
+            ...mood,
+            song: {
+              ...mood.song,
+              title: nextTitle,
+            },
+          };
+
+          onSongChange(updatedMood);
+          return;
+        }
+      } catch (error) {
+        console.error("Error updating music via LLM:", error);
+        // 아래 목업 로직으로 fallback
+      }
+    }
+
+    // [MOCK] fallback: 랜덤 무드 선택
     const allMoods = MOODS;
     const randomMood = allMoods[Math.floor(Math.random() * allMoods.length)];
     onMoodChange(randomMood);
-    
-    // const updateMood = async () => {
-    //   try {
-    //     const response = await fetch("/api/moods/current", {
-    //       method: "PUT",
-    //       headers: {
-    //         "Content-Type": "application/json",
-    //       },
-    //       credentials: "include",
-    //       body: JSON.stringify({ moodId: randomMood.id }),
-    //     });
-    //     if (!response.ok) throw new Error("Failed to update mood");
-    //     const data = await response.json();
-    //     onMoodChange(data.mood);
-    //   } catch (error) {
-    //     console.error("Error updating mood:", error);
-    //   }
-    // };
-    // updateMood();
+  };
+
+  // 무드 저장/삭제 핸들러
+  const handleSaveToggle = async () => {
+    if (isSaved) {
+      // 저장 취소 (무드셋에서 제거)
+      try {
+        const response = await fetch("/api/moods/saved");
+        if (response.ok) {
+          const data = await response.json() as { savedMoods?: Array<{ id: string; moodId: string }> };
+          const savedMood = data.savedMoods?.find(
+            (saved) => saved.moodId === mood.id
+          );
+          if (savedMood) {
+            const deleteResponse = await fetch(
+              `/api/moods/saved/${savedMood.id}`,
+              { method: "DELETE" }
+            );
+            if (deleteResponse.ok) {
+              setIsSaved(false);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error removing saved mood:", error);
+      }
+    } else {
+      // 무드 저장
+      try {
+        const musicGenre = currentSegment?.music?.genre || "newage";
+        const response = await fetch("/api/moods/saved", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            moodId: mood.id,
+            moodName: mood.name,
+            moodColor: mood.color,
+            music: {
+              genre: musicGenre,
+              title: mood.song.title,
+            },
+            scent: {
+              type: mood.scent.type,
+              name: mood.scent.name,
+            },
+            preferenceCount,
+          }),
+        });
+        if (response.ok) {
+          setIsSaved(true);
+        }
+      } catch (error) {
+        console.error("Error saving mood:", error);
+      }
+    }
   };
 
   return {
@@ -197,13 +371,16 @@ export function useMoodDashboard({
     setPlaying,
     progress,
     isSaved,
-    setIsSaved,
+    setIsSaved: handleSaveToggle, // 저장/삭제 핸들러로 교체
     moodDuration,
     handleScentClick,
     handlePreviousSong,
     handleNextSong,
     handleRefreshClick,
     handleAlbumClick,
+    handlePreferenceClick,
+    preferenceCount,
+    maxReached,
   };
 }
 

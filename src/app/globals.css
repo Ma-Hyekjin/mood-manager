@@ -135,4 +135,23 @@
   .animate-grow {
     animation: grow 0.25s ease-out;
   }
+
+  @keyframes heartFloat {
+    0% {
+      transform: translate(-50%, -50%) scale(0.5);
+      opacity: 0;
+    }
+    50% {
+      transform: translate(-50%, -100%) scale(1.2);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(-50%, -150%) scale(0.8);
+      opacity: 0;
+    }
+  }
+
+  .animate-heart-float {
+    animation: heartFloat 1s ease-out forwards;
+  }
   }

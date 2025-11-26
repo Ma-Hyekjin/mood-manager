@@ -1,6 +1,6 @@
 # PC 데스크톱 동적 배경화면 아키텍처
 
-## 🎯 제안 요약
+## 제안 요약
 
 **핵심 아이디어:**
 1. 시계열 + 마르코프 체인으로 무드스트림 예측 → LLM으로 동적 배경 생성
@@ -37,7 +37,7 @@
 
 ---
 
-## 📊 단계별 상세 설계
+## 단계별 상세 설계
 
 ### Step 1: 시계열 + 마르코프 체인으로 무드스트림 생성
 
@@ -781,8 +781,8 @@ export default function DesktopBackgroundPage() {
 ```typescript
 interface BackgroundParamsResponse {
   // 필수
-  moodAlias: string; // "겨울비의 평온"
-  musicSelection: string; // "Ambient Rain Meditation"
+  moodAlias: string; // "Calm Winter Rain" (영어 별명)
+  musicSelection: string; // "Ambient Rain Meditation" (영어 트랙명)
   moodColor: string; // "#6B8E9F"
   lighting: {
     rgb: [number, number, number];
@@ -806,12 +806,13 @@ interface BackgroundParamsResponse {
   particleEffect?: boolean;
   gradientColors?: string[]; // 2-3개 HEX
   transitionDuration?: number; // ms
+  source?: string; // "openai" | "cache" | "mock-no-key"
 }
 ```
 
 ---
 
-## 🎯 통합 파이프라인
+## 통합 파이프라인
 
 ```
 [생체신호 수집]
@@ -840,7 +841,7 @@ interface BackgroundParamsResponse {
 
 ---
 
-## ✅ 핵심 개선사항
+## 핵심 개선사항
 
 ### 1. Input 개선
 - ✅ `timeOfDay` 추가 (시간대 고려)
@@ -869,7 +870,7 @@ interface BackgroundParamsResponse {
 
 ---
 
-## 💡 기술적 가치
+## 기술적 가치
 
 1. **데이터 처리 근거 강화**
    - 시계열 분석: 추세 예측
@@ -885,4 +886,4 @@ interface BackgroundParamsResponse {
    - PC: 동적 배경화면 + 음악
    - Watch: 미니 뷰
 
-**결론: 매우 우수한 제안입니다. 구현을 강력히 권장합니다.**
+위 내용은 PC 데스크톱 동적 배경 확장을 위한 참고용 설계 요약이다.

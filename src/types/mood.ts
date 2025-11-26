@@ -4,6 +4,7 @@
  * Mood Type Definition
  */
 
+// 향 타입 (기존 호환성을 위해 PascalCase 유지, 내부적으로는 소문자 사용)
 export type ScentType =
   | "Musk"
   | "Aromatic"
@@ -17,6 +18,25 @@ export type ScentType =
   | "Spicy"
   | "Floral"
   | "Powdery";
+
+// 향 카테고리 변환 헬퍼 (PascalCase → snake_case)
+export function scentTypeToCategory(scentType: ScentType): string {
+  const map: Record<ScentType, string> = {
+    Musk: "musk",
+    Aromatic: "aromatic",
+    Woody: "woody",
+    Citrus: "citrus",
+    Honey: "honey",
+    Green: "green",
+    Dry: "dry",
+    Leathery: "leathery",
+    Marine: "marine",
+    Spicy: "spicy",
+    Floral: "floral",
+    Powdery: "powdery",
+  };
+  return map[scentType];
+}
 
 export interface Scent {
   type: ScentType;

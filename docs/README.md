@@ -14,13 +14,14 @@
   - Monorepo 전환 정보
 
 ### API 관련
-- **[API_SPEC.md](./API_SPEC.md)**: 전체 API 명세서 (21개 엔드포인트)
-- **[API_ROUTES.md](./API_ROUTES.md)**: Next.js API Routes 구조 및 구현 가이드
+- **[API_SPECIFICATION.md](./API_SPECIFICATION.md)**: 전체 API 명세서 (무드스트림, 전처리, LLM 등)
+- **[MOOD_STREAM_ARCHITECTURE.md](./MOOD_STREAM_ARCHITECTURE.md)**: 무드스트림 아키텍처 및 처리 흐름
+- **[MOOD_STREAM_IMPLEMENTATION.md](./MOOD_STREAM_IMPLEMENTATION.md)**: 무드스트림 구현 정리
 
-### 프로젝트 문서
-- **[TODO.md](./TODO.md)**: 현재 해야 할 일 및 작업 우선순위
-- **[PAGE_ROLES.md](./PAGE_ROLES.md)**: 각 페이지의 역할 및 현재 구현 상태
-- **[PAGE_COMPLETION_REVIEW.md](./PAGE_COMPLETION_REVIEW.md)**: 페이지 구현 현황
+### LLM 관련
+- **[LLM_INPUT_PARAMETERS.md](./LLM_INPUT_PARAMETERS.md)**: LLM 입력 파라미터 가이드
+- **[OPENAI_INTEGRATION.md](./OPENAI_INTEGRATION.md)**: OpenAI 통합 가이드
+- **[COST_OPTIMIZATION.md](./COST_OPTIMIZATION.md)**: 비용 최적화 전략
 
 ### 디자인 가이드
 - **[RESPONSIVE_DESIGN.md](./RESPONSIVE_DESIGN.md)**: 반응형 디자인 가이드 (375px 고정 너비)
@@ -33,21 +34,21 @@
 ## 빠른 참조
 
 ### 프론트엔드 개발자
-1. **프로젝트 구조**: `PROJECT_STRUCTURE.md` - 전체 구조 및 WearOS 앱 정보
-2. **API 사용**: `API_SPEC.md` - API 명세 확인
-3. **코드 구조**: `API_ROUTES.md` - API Routes 구조
-4. **페이지 역할**: `PAGE_ROLES.md` - 각 페이지 역할 및 구현 상태
-5. **구현 현황**: `PAGE_COMPLETION_REVIEW.md` - 페이지별 구현 상태
+1. 프로젝트 구조: `PROJECT_STRUCTURE.md` - 전체 구조 및 WearOS 앱 정보
+2. API 사용: `API_SPECIFICATION.md` - API 명세 확인
+3. 무드스트림: `MOOD_STREAM_ARCHITECTURE.md` - 무드스트림 아키텍처 및 처리 흐름
+4. LLM 통합: `LLM_INPUT_PARAMETERS.md` - LLM 입력 파라미터 가이드
 
 ### 백엔드 개발자
-1. **API 명세**: `API_SPEC.md` - 모든 API 엔드포인트 명세
-2. **API Routes 구조**: `API_ROUTES.md` - Next.js API Routes 구조
-3. **프로젝트 구조**: `PROJECT_STRUCTURE.md` - WearOS 앱 데이터 전송 구조
+1. API 명세: `API_SPECIFICATION.md` - 모든 API 엔드포인트 명세
+2. 무드스트림: `MOOD_STREAM_ARCHITECTURE.md` - 무드스트림 생성 및 처리 로직
+3. 프로젝트 구조: `PROJECT_STRUCTURE.md` - WearOS 앱 데이터 전송 구조
+4. LLM 입력: `LLM_INPUT_PARAMETERS.md` - LLM에 전달할 파라미터 구조
 
 ### 프로젝트 관리자
-1. **현황 파악**: `TODO.md` - 현재 작업 및 우선순위
-2. **구현 현황**: `PAGE_COMPLETION_REVIEW.md` - 페이지 구현 상태
-3. **프로젝트 구조**: `PROJECT_STRUCTURE.md` - 전체 프로젝트 구조
+1. 무드스트림: `MOOD_STREAM_IMPLEMENTATION.md` - 구현 정리 및 다음 단계
+2. 비용 최적화: `COST_OPTIMIZATION.md` - OpenAI 비용 최적화 전략
+3. 프로젝트 구조: `PROJECT_STRUCTURE.md` - 전체 프로젝트 구조
 
 ---
 

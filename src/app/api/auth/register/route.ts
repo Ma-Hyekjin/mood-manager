@@ -182,12 +182,76 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 9. 이메일 중복 체크
+    // 9. 이메일 중복 체크 및 프로필 미완성 계정 업데이트
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
 
     if (existingUser) {
+      // 9-1. 기존 계정이 프로필 미완성 상태 (소셜 로그인 임시 계정)인지 확인
+      const isIncompleteProfile =
+        !existingUser.givenName ||
+        !existingUser.familyName ||
+        !existingUser.birthDate ||
+        !existingUser.gender;
+
+      if (isIncompleteProfile) {
+        // 프로필 미완성 계정 → 부족한 정보만 업데이트
+        console.log(
+          `[POST /api/auth/register] Updating incomplete profile for user: ${existingUser.email}`
+        );
+        console.log(`[POST /api/auth/register] Missing fields:`, {
+          givenName: !existingUser.givenName,
+          familyName: !existingUser.familyName,
+          birthDate: !existingUser.birthDate,
+          gender: !existingUser.gender,
+        });
+
+        const updateData: Record<string, unknown> = {};
+
+        // 부족한 정보만 업데이트
+        if (!existingUser.givenName) {
+          updateData.givenName = name;
+        }
+        if (!existingUser.familyName) {
+          updateData.familyName = familyName;
+        }
+        if (!existingUser.birthDate) {
+          updateData.birthDate = new Date(birthDate);
+        }
+        if (!existingUser.gender) {
+          updateData.gender = gender.toLowerCase();
+        }
+
+        // 전화번호, provider, 프로필 이미지는 제공된 경우 업데이트
+        if (normalizedPhone) {
+          updateData.phone = normalizedPhone;
+        }
+        if (provider) {
+          updateData.provider = provider;
+        }
+        if (profileImageUrl) {
+          updateData.profileImageUrl = profileImageUrl;
+        }
+
+        const updatedUser = await prisma.user.update({
+          where: { id: existingUser.id },
+          data: updateData,
+        });
+
+        return NextResponse.json({
+          success: true,
+          updated: true, // 업데이트 플래그
+          user: {
+            id: String(updatedUser.id),
+            email: updatedUser.email,
+            familyName: updatedUser.familyName,
+            name: updatedUser.givenName,
+          },
+        });
+      }
+
+      // 9-2. 프로필이 이미 완성된 계정 → 에러
       return NextResponse.json(
         {
           error: "EMAIL_ALREADY_EXISTS",

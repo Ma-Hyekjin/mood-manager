@@ -16,6 +16,9 @@ export function useRegisterForm() {
   const provider = searchParams?.get("provider") || ""; // google, kakao, naver
   const socialEmail = searchParams?.get("email") || "";
   const socialName = searchParams?.get("name") || "";
+  const socialFamilyName = searchParams?.get("familyName") || "";
+  const socialBirthDate = searchParams?.get("birthDate") || "";
+  const socialGender = searchParams?.get("gender") || "";
   const socialImage = searchParams?.get("image") || "";
 
   const isSocialSignup = !!provider;
@@ -35,13 +38,30 @@ export function useRegisterForm() {
   const [passwordStrength, setPasswordStrength] = useState<"weak" | "medium" | "strong" | null>(null);
   const [passwordsMatch, setPasswordsMatch] = useState<boolean | null>(null);
 
-  // 소셜 가입이면 이메일과 이름 자동 입력
+  // 소셜 가입이면 받아온 정보 자동 입력
   useEffect(() => {
     if (isSocialSignup) {
       setEmail(socialEmail);
-      setName(socialName);
+
+      if (socialName) {
+        setName(socialName);
+      }
+      if (socialFamilyName) {
+        setFamilyName(socialFamilyName);
+      }
+      if (socialBirthDate) {
+        // YYYY-MM-DD → YYYY.MM.DD 형식으로 변환
+        const date = new Date(socialBirthDate);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        setBirthDate(`${year}.${month}.${day}`);
+      }
+      if (socialGender) {
+        setGender(socialGender as "male" | "female");
+      }
     }
-  }, [isSocialSignup, socialEmail, socialName]);
+  }, [isSocialSignup, socialEmail, socialName, socialFamilyName, socialBirthDate, socialGender]);
 
   // 이메일 형식 검증
   const validateEmail = (email: string) => {
@@ -310,6 +330,12 @@ export function useRegisterForm() {
     passwordsMatch,
     isSocialSignup,
     provider,
+    // Disabled flags (소셜에서 이미 받아온 정보는 비활성화)
+    isEmailDisabled: isSocialSignup && !!socialEmail,
+    isNameDisabled: isSocialSignup && !!socialName,
+    isFamilyNameDisabled: isSocialSignup && !!socialFamilyName,
+    isBirthDateDisabled: isSocialSignup && !!socialBirthDate,
+    isGenderDisabled: isSocialSignup && !!socialGender,
     // Setters
     setFamilyName,
     setName,

@@ -181,7 +181,66 @@ export default function LoginPage() {
       }
 
       if (result?.ok) {
-        // 로그인 성공
+        // 로그인 성공 - 프로필 완성 여부 체크
+        try {
+          const profileResponse = await fetch("/api/auth/profile", {
+            method: "GET",
+            credentials: "include",
+          });
+
+          if (profileResponse.ok) {
+            const profileData = await profileResponse.json();
+
+            // 필수 정보 (givenName, familyName, birthDate, gender) 중 하나라도 없으면 프로필 완성 필요
+            const isProfileIncomplete =
+              !profileData.givenName ||
+              !profileData.familyName ||
+              !profileData.birthDate ||
+              !profileData.gender;
+
+            if (isProfileIncomplete) {
+              console.log(`[Social Login] Profile incomplete, redirecting to register`);
+              console.log(`[Social Login] Missing fields:`, {
+                givenName: !profileData.givenName,
+                familyName: !profileData.familyName,
+                birthDate: !profileData.birthDate,
+                gender: !profileData.gender,
+              });
+              toast.info("Please complete your profile.");
+
+              // 회원가입 완성 페이지로 리다이렉트 (쿼리 파라미터로 정보 전달)
+              const params = new URLSearchParams({
+                provider: provider,
+                email: profileData.email || "",
+              });
+
+              // 이미 있는 정보도 쿼리 파라미터로 전달 (자동 입력용)
+              if (profileData.givenName) {
+                params.append("name", profileData.givenName);
+              }
+              if (profileData.familyName) {
+                params.append("familyName", profileData.familyName);
+              }
+              if (profileData.birthDate) {
+                params.append("birthDate", profileData.birthDate);
+              }
+              if (profileData.gender) {
+                params.append("gender", profileData.gender);
+              }
+              if (profileData.profileImageUrl) {
+                params.append("image", profileData.profileImageUrl);
+              }
+
+              router.push(`/register?${params.toString()}`);
+              return;
+            }
+          }
+        } catch (err) {
+          console.error("[Social Login] Profile check error:", err);
+          // 프로필 조회 실패해도 홈으로 이동 (설문 팝업에서 처리)
+        }
+
+        // 프로필 완성됨 - 홈으로 이동
         toast.success("Login successful!");
         router.push("/home");
       }

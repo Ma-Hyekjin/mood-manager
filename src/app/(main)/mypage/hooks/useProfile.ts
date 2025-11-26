@@ -6,8 +6,9 @@ interface UserProfile {
   email: string;
   name: string;
   familyName: string;
-  birthDate: string;
-  gender: string;
+  birthDate: string | null;
+  gender: string | null;
+  phone: string | null;
   createdAt: string;
   profileImageUrl?: string | null;
 }
@@ -23,6 +24,9 @@ export function useProfile() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editedName, setEditedName] = useState("");
   const [editedFamilyName, setEditedFamilyName] = useState("");
+  const [editedBirthDate, setEditedBirthDate] = useState("");
+  const [editedGender, setEditedGender] = useState<"male" | "female" | "">("");
+  const [editedPhone, setEditedPhone] = useState("");
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -54,6 +58,15 @@ export function useProfile() {
     if (profile) {
       setEditedName(profile.name);
       setEditedFamilyName(profile.familyName);
+      setEditedBirthDate(profile.birthDate || "");
+      setEditedGender(
+        profile.gender === "Male"
+          ? "male"
+          : profile.gender === "Female"
+            ? "female"
+            : ""
+      );
+      setEditedPhone(profile.phone || "");
     }
   }, [profile]);
 
@@ -91,6 +104,23 @@ export function useProfile() {
       const formData = new FormData();
       formData.append("name", editedName.trim());
       formData.append("familyName", editedFamilyName.trim());
+
+      // 생년월일 (선택)
+      if (editedBirthDate) {
+        formData.append("birthDate", editedBirthDate);
+      }
+
+      // 성별 (선택)
+      if (editedGender) {
+        formData.append("gender", editedGender);
+      }
+
+      // 전화번호 (선택)
+      if (editedPhone !== undefined) {
+        formData.append("phone", editedPhone.trim());
+      }
+
+      // 프로필 이미지 (선택)
       if (profileImageFile) {
         formData.append("profileImage", profileImageFile);
       }
@@ -125,6 +155,15 @@ export function useProfile() {
     if (profile) {
       setEditedName(profile.name);
       setEditedFamilyName(profile.familyName);
+      setEditedBirthDate(profile.birthDate || "");
+      setEditedGender(
+        profile.gender === "Male"
+          ? "male"
+          : profile.gender === "Female"
+            ? "female"
+            : ""
+      );
+      setEditedPhone(profile.phone || "");
       setProfileImage(profile.profileImageUrl || null);
     }
     setProfileImageFile(null);
@@ -136,11 +175,17 @@ export function useProfile() {
     isEditingProfile,
     editedName,
     editedFamilyName,
+    editedBirthDate,
+    editedGender,
+    editedPhone,
     profileImage,
     isUpdating,
     setIsEditingProfile,
     setEditedName,
     setEditedFamilyName,
+    setEditedBirthDate,
+    setEditedGender,
+    setEditedPhone,
     handleImageChange,
     handleProfileUpdate,
     handleProfileCancel,

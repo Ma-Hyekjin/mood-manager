@@ -41,7 +41,7 @@ export async function GET(_request: NextRequest) {
     // 2. 사용자의 모든 디바이스 조회
     const devices = await prisma.device.findMany({
       where: {
-        userId: parseInt(session.user.id),
+        userId: session.user.id,
         status: "active", // 활성화된 디바이스만 조회
       },
       orderBy: {
@@ -51,7 +51,7 @@ export async function GET(_request: NextRequest) {
 
     // 3. 디바이스 데이터 포맷팅
     const formattedDevices = devices.map((device) => ({
-      id: device.id.toString(),
+      id: device.id,
       type: device.type,
       name: device.name,
       battery: device.battery ?? 100,
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
     if (!deviceName) {
       const existingDevices = await prisma.device.count({
         where: {
-          userId: parseInt(session.user.id),
+          userId: session.user.id,
           type,
           status: "active",
         },
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     // 6. 디바이스 생성
     const device = await prisma.device.create({
       data: {
-        userId: parseInt(session.user.id),
+        userId: session.user.id,
         name: deviceName,
         type,
         status: "active",
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
 
     // 7. 응답 데이터 포맷팅
     const formattedDevice = {
-      id: device.id.toString(),
+      id: device.id,
       type: device.type,
       name: device.name,
       battery: device.battery ?? 100,

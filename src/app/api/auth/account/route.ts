@@ -12,6 +12,7 @@
  * - 인증이 필요한 엔드포인트
  * - confirmText가 "I understand"와 정확히 일치해야 함
  * - Cascade 삭제로 관련 데이터도 함께 삭제됨 (Device, Preset, Inquiry 등)
+ * - UUID 사용으로 ID 고갈 걱정 없음
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -56,7 +57,7 @@ export async function DELETE(request: NextRequest) {
 
     // 4. 사용자 삭제 (Cascade로 관련 데이터도 함께 삭제)
     await prisma.user.delete({
-      where: { id: parseInt(session.user.id) },
+      where: { id: session.user.id },
     });
 
     // 5. 성공 응답

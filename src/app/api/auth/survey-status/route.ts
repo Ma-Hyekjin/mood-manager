@@ -37,7 +37,7 @@ export async function GET(_request: NextRequest) {
 
     // 2. 사용자 조회
     const user = await prisma.user.findUnique({
-      where: { id: parseInt(session.user.id) },
+      where: { id: session.user.id },
       select: { hasSurvey: true },
     });
 

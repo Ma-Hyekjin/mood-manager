@@ -101,15 +101,15 @@ export async function PUT(request: NextRequest) {
       mood: {
         id: preset.id,
         name: preset.name,
-        color: preset.light.color,
+        color: preset.fragrance.color || preset.light.color,
         song: {
           title: preset.sound.name,
-          duration: 180,
+          duration: preset.sound.duration || 180,
         },
         scent: {
           type: preset.fragrance.name,
           name: preset.fragrance.name,
-          color: preset.light.color,
+          color: preset.fragrance.color || preset.light.color,
         },
       },
       updatedDevices: updatedDevices.map((device) => ({

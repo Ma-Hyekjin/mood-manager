@@ -99,12 +99,12 @@ export async function GET(_request: NextRequest) {
         color: preset.light.color,
         song: {
           title: preset.sound.name,
-          duration: 180, // 기본값 (실제로는 Sound 테이블에 duration 필드 필요)
+          duration: preset.sound.duration || 180,
         },
         scent: {
           type: preset.fragrance.name,
           name: preset.fragrance.name,
-          color: preset.light.color, // Fragrance에 color가 없으므로 Light의 color 사용
+          color: preset.fragrance.color || preset.light.color,
         },
       },
       updatedDevices: updatedDevices.map((device) => ({
@@ -266,7 +266,7 @@ export async function PUT(request: NextRequest) {
         color: preset.light.color,
         song: {
           title: preset.sound.name,
-          duration: 180,
+          duration: preset.sound.duration || 180,
         },
         scent: {
           type: preset.fragrance.name,

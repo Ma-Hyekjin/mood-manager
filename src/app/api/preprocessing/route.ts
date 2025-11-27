@@ -82,8 +82,9 @@ export async function GET() {
       latestSleepScore = sleepResult.score;
       latestSleepDuration = sleepResult.totalMinutes;
     } else {
-      latestSleepScore = 0;
-      latestSleepDuration = 0;
+      // 수면 데이터 없을 때 기본값 (LLM Input 스펙 기준)
+      latestSleepScore = 70;   // 중간 점수
+      latestSleepDuration = 480; // 8시간
     }
 
     // ------------------------------------------------------------

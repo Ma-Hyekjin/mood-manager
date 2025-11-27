@@ -1,96 +1,78 @@
-// ======================================================
-// File: src/app/api/auth/account/route.ts
-// ======================================================
-
-/*
-  [Account Deletion API 역할]
-
-  DELETE /api/auth/account
-
-  - 회원탈퇴 처리
-  - 확인 텍스트 검증 후 계정 삭제
-*/
+// src/app/api/auth/account/route.ts
+/**
+ * [파일 역할]
+ * - 회원탈퇴 API 엔드포인트
+ * - 사용자 계정 삭제 및 관련 데이터 제거
+ *
+ * [사용되는 위치]
+ * - 마이페이지의 회원탈퇴 기능에서 호출
+ * - DELETE /api/auth/account
+ *
+ * [주의사항]
+ * - 인증이 필요한 엔드포인트
+ * - confirmText가 "I understand"와 정확히 일치해야 함
+ * - Cascade 삭제로 관련 데이터도 함께 삭제됨 (Device, Preset, Inquiry 등)
+ * - UUID 사용으로 ID 고갈 걱정 없음
+ */
 
 import { NextRequest, NextResponse } from "next/server";
-// import { getServerSession } from "next-auth"; // TODO: 백엔드 API 연동 시 사용
+import { requireAuth } from "@/lib/auth/session";
+import { prisma } from "@/lib/prisma";
 
 /**
  * DELETE /api/auth/account
  *
- * 회원탈퇴 API
+ * 회원탈퇴 처리
  *
- * TODO: 백엔드 서버로 요청을 프록시하거나 직접 호출하도록 구현
+ * 요청 필드:
+ * - confirmText (required): 확인 텍스트 (반드시 "I understand"여야 함)
  *
- * 구현 내용:
- * 1. NextAuth 세션 확인 (인증 필수)
- * 2. 요청 본문에서 confirmText 추출
- * 3. confirmText가 "I understand"인지 확인
- * 4. 백엔드 서버로 DELETE 요청 전달
- *    - URL: ${BACKEND_URL}/api/auth/account
- *    - Body: { confirmText: string }
- *    - Headers: 세션 정보 포함
- * 5. 백엔드에서 계정 삭제 처리 (소프트 삭제 또는 하드 삭제)
- * 6. 성공 응답 반환
- *
- * 참고:
- * - 인증이 필요한 엔드포인트
- * - 확인 텍스트가 정확히 일치해야 함
- * - 계정 삭제 후 세션 무효화 필요
+ * 응답:
+ * - 성공: { success: true, message: "Account deleted successfully" }
+ * - 실패: { error: "ERROR_CODE", message: "에러 메시지" }
  */
 export async function DELETE(request: NextRequest) {
-  // [MOCK] 목업 모드: 목업 응답 반환
-  // TODO: 백엔드 API 연동 시 아래 주석 해제하고 목업 코드 제거
-  //
-  // const session = await getServerSession();
-  //
-  // if (!session) {
-  //   return NextResponse.json(
-  //     { error: "UNAUTHORIZED", message: "Authentication required" },
-  //     { status: 401 }
-  //   );
-  // }
-  //
-  // const body = await request.json();
-  // const { confirmText } = body;
-  //
-  // if (confirmText !== "I understand") {
-  //   return NextResponse.json(
-  //     { error: "INVALID_INPUT", message: "Confirmation text does not match" },
-  //     { status: 400 }
-  //   );
-  //
-  // const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
-  // const response = await fetch(`${backendUrl}/api/auth/account`, {
-  //   method: "DELETE",
-  //   headers: {
-  //     "Content-Type": "application/json",
-  //     "Cookie": request.headers.get("cookie") || "",
-  //   },
-  //   body: JSON.stringify({ confirmText }),
-  // });
-  //
-  // if (!response.ok) {
-  //   const error = await response.json();
-  //   return NextResponse.json(error, { status: response.status });
-  // }
-  //
-  // const data = await response.json();
-  // return NextResponse.json(data);
+  try {
+    // 1. 세션 검증
+    const sessionOrError = await requireAuth();
+    if (sessionOrError instanceof NextResponse) {
+      return sessionOrError; // 401 응답 반환
+    }
+    const session = sessionOrError;
 
-  // 목업 응답: 회원탈퇴 성공
-  const body = await request.json();
-  const { confirmText } = body;
+    // 2. 요청 본문 파싱
+    const body = await request.json();
+    const { confirmText } = body;
 
-  if (confirmText !== "I understand") {
+    // 3. confirmText 검증
+    if (confirmText !== "I understand") {
+      return NextResponse.json(
+        {
+          error: "INVALID_INPUT",
+          message: "확인 텍스트가 일치하지 않습니다.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // 4. 사용자 삭제 (Cascade로 관련 데이터도 함께 삭제)
+    await prisma.user.delete({
+      where: { id: session.user.id },
+    });
+
+    // 5. 성공 응답
+    return NextResponse.json({
+      success: true,
+      message: "Account deleted successfully",
+    });
+  } catch (error) {
+    console.error("[DELETE /api/auth/account] 회원탈퇴 실패:", error);
     return NextResponse.json(
-      { error: "INVALID_INPUT", message: "Confirmation text does not match" },
-      { status: 400 }
+      {
+        error: "INTERNAL_ERROR",
+        message: "회원탈퇴 처리 중 오류가 발생했습니다.",
+      },
+      { status: 500 }
     );
   }
-
-  return NextResponse.json({
-    success: true,
-    message: "Account deleted successfully",
-  });
 }
-

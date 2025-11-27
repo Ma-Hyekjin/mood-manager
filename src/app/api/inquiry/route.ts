@@ -1,99 +1,85 @@
-// ======================================================
-// File: src/app/api/inquiry/route.ts
-// ======================================================
-
-/*
-  [Inquiry API 역할]
-
-  POST /api/inquiry
-
-  - 1:1 문의 제출 및 저장
-*/
+// src/app/api/inquiry/route.ts
+/**
+ * [파일 역할]
+ * - 1:1 문의 제출 API 엔드포인트
+ * - 사용자 문의를 DB에 저장
+ *
+ * [사용되는 위치]
+ * - 마이페이지의 1:1 문의 페이지에서 호출
+ * - POST /api/inquiry
+ *
+ * [주의사항]
+ * - 인증이 필요한 엔드포인트
+ * - subject와 message는 필수 입력 항목
+ * - 문의는 관리자가 확인 후 답변 가능
+ */
 
 import { NextRequest, NextResponse } from "next/server";
-// import { getServerSession } from "next-auth"; // TODO: 백엔드 API 연동 시 사용
+import { requireAuth } from "@/lib/auth/session";
+import { prisma } from "@/lib/prisma";
+import { validateRequiredFields } from "@/lib/utils/validation";
 
 /**
  * POST /api/inquiry
  *
- * 1:1 문의 제출 API
+ * 1:1 문의 제출
  *
- * TODO: 백엔드 서버로 요청을 프록시하거나 직접 호출하도록 구현
+ * 요청 필드:
+ * - subject (required): 문의 제목
+ * - message (required): 문의 내용
  *
- * 구현 내용:
- * 1. NextAuth 세션 확인 (인증 필수)
- * 2. 요청 본문에서 subject, message 추출
- * 3. 유효성 검사 (subject, message가 비어있지 않은지 확인)
- * 4. 백엔드 서버로 POST 요청 전달
- *    - URL: ${BACKEND_URL}/api/inquiry
- *    - Body: { subject: string, message: string, userId: string }
- *    - Headers: 세션 정보 포함
- * 5. 백엔드에서 문의 저장 (DB에 저장)
- * 6. 성공 응답 반환
- *    - 응답: { success: boolean, inquiryId: string }
- *
- * 참고:
- * - 인증이 필요한 엔드포인트
- * - 문의는 관리자가 확인 후 답변 가능
+ * 응답:
+ * - 성공: { success: true, inquiryId: string }
+ * - 실패: { error: "ERROR_CODE", message: "에러 메시지" }
  */
 export async function POST(request: NextRequest) {
-  // [MOCK] 목업 모드: 목업 응답 반환
-  // TODO: 백엔드 API 연동 시 아래 주석 해제하고 목업 코드 제거
-  //
-  // const session = await getServerSession();
-  //
-  // if (!session) {
-  //   return NextResponse.json(
-  //     { error: "UNAUTHORIZED", message: "Authentication required" },
-  //     { status: 401 }
-  //   );
-  // }
-  //
-  // const body = await request.json();
-  // const { subject, message } = body;
-  //
-  // if (!subject || !message) {
-  //   return NextResponse.json(
-  //     { error: "INVALID_INPUT", message: "Subject and message are required" },
-  //     { status: 400 }
-  //   );
-  //
-  // const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
-  // const response = await fetch(`${backendUrl}/api/inquiry`, {
-  //   method: "POST",
-  //   headers: {
-  //     "Content-Type": "application/json",
-  //     "Cookie": request.headers.get("cookie") || "",
-  //   },
-  //   body: JSON.stringify({
-  //     subject,
-  //     message,
-  //     userId: session.user.id,
-  //   }),
-  // });
-  //
-  // if (!response.ok) {
-  //   const error = await response.json();
-  //   return NextResponse.json(error, { status: response.status });
-  // }
-  //
-  // const data = await response.json();
-  // return NextResponse.json(data);
+  try {
+    // 1. 세션 검증
+    const sessionOrError = await requireAuth();
+    if (sessionOrError instanceof NextResponse) {
+      return sessionOrError; // 401 응답 반환
+    }
+    const session = sessionOrError;
 
-  // 목업 응답: 문의 제출 성공
-  const body = await request.json();
-  const { subject, message } = body;
+    // 2. 요청 본문 파싱
+    const body = await request.json();
 
-  if (!subject || !message) {
+    // 3. 필수 필드 검증
+    const validation = validateRequiredFields(body, ["subject", "message"]);
+    if (!validation.valid) {
+      return NextResponse.json(
+        {
+          error: "INVALID_INPUT",
+          message: "문의 제목과 내용은 필수 입력 항목입니다.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const { subject, message } = body;
+
+    // 4. 문의 생성
+    const inquiry = await prisma.inquiry.create({
+      data: {
+        userId: session.user.id,
+        subject: subject.trim(),
+        message: message.trim(),
+      },
+    });
+
+    // 5. 성공 응답
+    return NextResponse.json({
+      success: true,
+      inquiryId: `inquiry-${inquiry.id}`,
+    });
+  } catch (error) {
+    console.error("[POST /api/inquiry] 문의 제출 실패:", error);
     return NextResponse.json(
-      { error: "INVALID_INPUT", message: "Subject and message are required" },
-      { status: 400 }
+      {
+        error: "INTERNAL_ERROR",
+        message: "문의 제출 중 오류가 발생했습니다.",
+      },
+      { status: 500 }
     );
   }
-
-  return NextResponse.json({
-    success: true,
-    inquiryId: `inquiry-${Date.now()}`,
-  });
 }
-

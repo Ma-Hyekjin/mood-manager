@@ -1,201 +1,303 @@
-// src/app/api/moods/current/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth/session";
+import { prisma } from "@/lib/prisma";
+import { validateRequiredFields } from "@/lib/utils/validation";
+import { parseFragranceComponents, parseSoundComponents } from "@/types/preset";
+
 /**
  * GET /api/moods/current
  * 
- * 시계열 + 마르코프 체인으로 생성된 무드스트림 조회
+ * 현재 무드 및 무드스트림 조회 API
  * 
- * [응답 구조]
- * - currentMood: 현재 적용 중인 무드
- * - moodStream: 30분 무드스트림 (시계열 + 마르코프 체인 예측)
- * - userDataCount: 사용자 데이터 개수 (선호도 가중치 계산용)
- */
-
-import { NextRequest, NextResponse } from "next/server";
-// import { getServerSession } from "next-auth";
-import { MOODS } from "@/types/mood";
-
-/**
- * [MOCK] 목업 모드
- * TODO: 시계열 + 마르코프 체인으로 실제 예측 구현
+ * [무드 생성 로직]
+ * 백엔드에서 10분마다 자동으로 검증을 수행합니다:
+ * 1. 현재 생체 데이터(V1)와 예측 무드(V0 * P^10)의 클러스터를 비교
+ * 2. 클러스터가 다르면 즉시 새 30분 무드스트림 생성
+ * 3. 클러스터가 같으면 기존 스트림 유지, 10분 전에 다음 스트림 예약
+ * 4. 전환 시 현재 노래가 끝난 후 새 무드로 전환 (자연스러운 UX)
+ * 
+ * [클러스터 정의]
+ * - '-': 부정 클러스터 (우울, 분노, 슬픔 등)
+ * - '0': 중립 클러스터 (안정, 평온 등)
+ * - '+': 긍정 클러스터 (기쁨, 즐거움 등)
+ * 
+ * [예외 처리]
+ * 데이터 부족 또는 모델 실패 시 '+' 클러스터 중 하나를 기본값으로 제안
+ * 
+ * TODO: 백엔드 서버로 요청을 프록시하거나 직접 호출하도록 구현
+ * 
+ * 구현 내용:
+ * 1. NextAuth 세션 확인 (인증 필수)
+ * 2. 백엔드 서버로 GET 요청 전달
+ *    - URL: ${BACKEND_URL}/api/moods/current
+ *    - Headers: 세션 정보 포함
+ * 3. 백엔드 응답을 그대로 반환
+ *    - 응답 형식:
+ *      {
+ *        currentMood: Mood, // 현재 적용 중인 무드
+ *        moodStream: Array<{ timestamp: string, mood: Mood }>, // 30분 스트림 (약 10곡)
+ *        cluster: '-' | '0' | '+', // 현재 무드의 클러스터
+ *        streamStatus: 'maintained' | 'regenerated', // 스트림 상태
+ *        nextCheck: string, // 다음 검증 시점 (ISO 8601)
+ *        nextStreamReady?: string // 다음 스트림 준비 완료 시점 (유지 시에만)
+ *      }
+ * 
+ * 참고:
+ * - 인증이 필요한 엔드포인트
+ * - 프론트엔드는 주기적으로(예: 1분마다) 이 API를 호출하여 최신 무드스트림 받음
+ * - streamStatus가 'regenerated'이고 현재 노래가 끝나면 새 무드로 전환
+ * - 자세한 로직은 MOOD_GENERATION_LOGIC.md 참고
  */
 export async function GET(_request: NextRequest) {
-  // TODO: 세션 확인
-  // const session = await getServerSession();
-  // if (!session) {
-  //   return NextResponse.json(
-  //     { error: "UNAUTHORIZED", message: "Authentication required" },
-  //     { status: 401 }
-  //   );
-  // }
-
-  // TODO: 시계열 + 마르코프 체인으로 무드스트림 생성
-  // const userId = session.user.id;
-  // const moodStream = await generateMoodStream(userId);
-
-  // [MOCK] 목업 데이터
-  // TODO: 실제로는 백엔드에서 1분 단위 예측값(VP, VPP, VPPP 등)을 받아옴
-  
-  // 1분 단위 예측값 시뮬레이션 (30개, 30분치)
-  const oneMinutePredictions: Array<{ timestamp: number; prediction: string }> = [];
-  const oneMinuteDuration = 60 * 1000; // 1분
-  
-  for (let i = 0; i < 30; i++) {
-    // VP, VPP, VPPP 시뮬레이션
-    const predictions = ["VP", "VPP", "VPPP"];
-    const prediction = predictions[Math.floor(Math.random() * predictions.length)];
-    
-    oneMinutePredictions.push({
-      timestamp: Date.now() + i * oneMinuteDuration,
-      prediction,
-    });
+  // 1. 세션 검증
+  const sessionOrError = await requireAuth();
+  if (sessionOrError instanceof NextResponse) {
+    return sessionOrError;
   }
-  
-  // 3분 단위로 분절 (VP^3n 단위)
-  const moodStream = [];
-  const segmentDuration = 3 * 60 * 1000; // 3분
-  
-  for (let i = 0; i < oneMinutePredictions.length; i += 3) {
-    const threeMinutePredictions = oneMinutePredictions.slice(i, i + 3);
-    
-    // 3분 동안의 예측값 중 가장 많이 나온 것 선택
-    const predictionCounts = threeMinutePredictions.reduce((acc, p) => {
-      acc[p.prediction] = (acc[p.prediction] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-    
-    const dominantPrediction = Object.entries(predictionCounts)
-      .sort((a, b) => b[1] - a[1])[0][0];
-    
-    // 예측값을 무드/장르/향으로 매핑 (TODO: 실제 매핑 로직)
-    const moodName = mapPredictionToMood(dominantPrediction);
-    const musicGenre = mapPredictionToGenre(dominantPrediction);
-    const scentType = mapPredictionToScent(dominantPrediction);
-    
-    // 기본 무드 선택 (같은 이름의 무드 중 하나)
-    const baseMood = MOODS.find(m => m.name === moodName) || MOODS[0];
-    
-    moodStream.push({
-      timestamp: threeMinutePredictions[0].timestamp,
-      duration: segmentDuration,
-      moodName,
-      musicGenre,
-      scentType,
-      // 기본 정보 (LLM이 나머지 정보 추가)
-      mood: baseMood,
-      music: {
-        genre: musicGenre,
-        title: baseMood.song.title, // 임시, LLM이 실제 선곡 생성
+  const session = sessionOrError;
+
+  try {
+    // 2. 사용자의 Manager 디바이스 찾기 (currentPresetId가 있는 디바이스)
+    const managerDevice = await prisma.device.findFirst({
+      where: {
+        userId: session.user.id,
+        type: "manager",
       },
-      scent: {
-        type: scentType,
-        name: baseMood.scent.name, // 임시
-      },
-      lighting: {
-        color: baseMood.color, // 임시, LLM이 실제 컬러 생성
-        rgb: hexToRgb(baseMood.color),
+      include: {
+        preset: {
+          include: {
+            fragrance: true,
+            light: true,
+            sound: true,
+          },
+        },
       },
     });
+
+    // 3. Manager 디바이스가 없거나 Preset이 없으면 null 반환
+    if (!managerDevice || !managerDevice.preset) {
+      return NextResponse.json({
+        currentMood: null,
+        userDataCount: 0,
+      });
+    }
+
+    const preset = managerDevice.preset;
+
+    // 4. Preset과 관련된 모든 활성 디바이스 조회
+    const updatedDevices = await prisma.device.findMany({
+      where: {
+        userId: session.user.id,
+        currentPresetId: preset.id,
+      },
+    });
+
+    // 5. Sound componentsJson에서 genre 추출
+    const soundComponents = parseSoundComponents(preset.sound.componentsJson);
+    const musicGenre = soundComponents.genre;
+
+    // 6. Fragrance componentsJson에서 type 추출
+    const fragranceComponents = parseFragranceComponents(preset.fragrance.componentsJson);
+    const scentType = fragranceComponents.type;
+
+    // 7. 사용자 데이터 개수 조회 (Firestore 또는 DB)
+    // TODO: 실제 Firestore에서 조회하도록 구현
+    const userDataCount = 0; // 기본값
+
+    // 8. 응답 포맷팅 (LLM Input 스펙에 맞춤)
+    return NextResponse.json({
+      currentMood: {
+        id: preset.id,
+        name: preset.name,
+        cluster: preset.cluster || "0", // 기본값: 중립
+        music: {
+          genre: musicGenre,
+          title: preset.sound.name,
+        },
+        scent: {
+          type: scentType,
+          name: preset.fragrance.name,
+        },
+      },
+      userDataCount: userDataCount,
+    });
+  } catch (error) {
+    console.error("[GET /api/moods/current] Error:", error);
+    return NextResponse.json(
+      { error: "INTERNAL_ERROR", message: "Failed to fetch current mood" },
+      { status: 500 }
+    );
   }
-  
-  // 현재 무드는 첫 번째 세그먼트
-  const currentSegment = moodStream[0];
-
-  return NextResponse.json({
-    currentMood: {
-      id: currentSegment.mood.id,
-      name: currentSegment.moodName,
-      cluster: "0", // '-', '0', '+'
-      music: {
-        genre: currentSegment.musicGenre,
-        title: currentSegment.music.title,
-      },
-      scent: {
-        type: currentSegment.scentType,
-        name: currentSegment.scent.name,
-      },
-      lighting: {
-        color: currentSegment.lighting.color,
-        rgb: currentSegment.lighting.rgb,
-      },
-    },
-    moodStream,
-    userDataCount: 45, // TODO: 실제 사용자 데이터 개수
-  });
-}
-
-/**
- * 예측값을 무드로 매핑
- */
-function mapPredictionToMood(prediction: string): string {
-  // TODO: 실제 매핑 로직
-  const moodMap: Record<string, string> = {
-    "VP": "Deep Relax",
-    "VPP": "Focus Mode",
-    "VPPP": "Bright Morning",
-  };
-  return moodMap[prediction] || "Deep Relax";
-}
-
-/**
- * 예측값을 음악 장르로 매핑
- */
-function mapPredictionToGenre(prediction: string): string {
-  // TODO: 실제 매핑 로직
-  const genreMap: Record<string, string> = {
-    "VP": "newage",
-    "VPP": "classical",
-    "VPPP": "pop",
-  };
-  return genreMap[prediction] || "newage";
-}
-
-/**
- * 예측값을 향으로 매핑
- */
-function mapPredictionToScent(prediction: string): string {
-  // TODO: 실제 매핑 로직
-  const scentMap: Record<string, string> = {
-    "VP": "citrus",
-    "VPP": "woody",
-    "VPPP": "floral",
-  };
-  return scentMap[prediction] || "citrus";
-}
-
-/**
- * HEX 색상을 RGB로 변환
- */
-function hexToRgb(hex: string): [number, number, number] {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result
-    ? [
-        parseInt(result[1], 16),
-        parseInt(result[2], 16),
-        parseInt(result[3], 16),
-      ]
-    : [230, 243, 255]; // 기본값
 }
 
 /**
  * PUT /api/moods/current
  * 
  * 무드 전체 변경 API
+ * 
+ * TODO: 백엔드 서버로 요청을 프록시하거나 직접 호출하도록 구현
+ * 
+ * 구현 내용:
+ * 1. NextAuth 세션 확인 (인증 필수)
+ * 2. 요청 본문에서 moodId 추출
+ * 3. 유효성 검사 (moodId가 유효한지 확인)
+ * 4. 백엔드 서버로 PUT 요청 전달
+ *    - URL: ${BACKEND_URL}/api/moods/current
+ *    - Body: { moodId: string }
+ *    - Headers: 세션 정보 포함
+ * 5. 백엔드 응답을 그대로 반환
+ *    - 응답: { mood: Mood, updatedDevices: Device[] }
+ * 
+ * 참고:
+ * - 인증이 필요한 엔드포인트
+ * - 무드 변경 시 관련 디바이스(Manager, Light) 상태 자동 업데이트
+ * - 색상, 음악, 향 모두 변경
  */
 export async function PUT(request: NextRequest) {
-  // [MOCK] 목업 모드
-  const body = await request.json();
-  const moodId = body.moodId || "calm-1";
-  
-  const selectedMood = MOODS.find(m => m.id === moodId) || MOODS[0];
-  
-  return NextResponse.json({
-    mood: {
-      id: selectedMood.id,
-      name: selectedMood.name,
-      color: selectedMood.color,
-      song: { title: selectedMood.song.title, duration: selectedMood.song.duration },
-      scent: selectedMood.scent,
-    },
-    updatedDevices: [],
-  });
+  // 1. 세션 검증
+  const sessionOrError = await requireAuth();
+  if (sessionOrError instanceof NextResponse) {
+    return sessionOrError;
+  }
+  const session = sessionOrError;
+
+  try {
+    // 2. 요청 본문 검증
+    const body = await request.json();
+    const validation = validateRequiredFields(body, ["moodId"]);
+    if (!validation.valid) {
+      return NextResponse.json(
+        { error: "INVALID_INPUT", message: "moodId is required" },
+        { status: 400 }
+      );
+    }
+
+    const { moodId } = body;
+
+    // 3. Preset 존재 여부 확인
+    const preset = await prisma.preset.findUnique({
+      where: { id: moodId },
+      include: {
+        fragrance: true,
+        light: true,
+        sound: true,
+      },
+    });
+
+    if (!preset) {
+      return NextResponse.json(
+        { error: "MOOD_NOT_FOUND", message: "Mood not found" },
+        { status: 404 }
+      );
+    }
+
+    // 4. Preset 소유자 확인
+    if (preset.userId !== session.user.id) {
+      return NextResponse.json(
+        { error: "UNAUTHORIZED", message: "You do not own this mood" },
+        { status: 403 }
+      );
+    }
+
+    // 5. 사용자의 모든 디바이스에 Preset 적용
+    const devices = await prisma.device.findMany({
+      where: {
+        userId: session.user.id,
+        power: true, // 전원이 켜진 디바이스만
+      },
+    });
+
+    const updatedDevices = await Promise.all(
+      devices.map(async (device) => {
+        const updateData: any = {
+          currentPresetId: preset.id,
+        };
+
+        // 디바이스 타입별 출력 설정
+        if (device.type === "manager" || device.type === "light") {
+          updateData.brightness = preset.light.brightness;
+          updateData.color = preset.light.color;
+        }
+
+        if (device.type === "manager" || device.type === "scent") {
+          updateData.scentType = preset.fragrance.name;
+        }
+
+        if (device.type === "manager" || device.type === "speaker") {
+          updateData.nowPlaying = preset.sound.name;
+        }
+
+        return await prisma.device.update({
+          where: { id: device.id },
+          data: updateData,
+        });
+      })
+    );
+
+    // 6. Preset 업데이트 (updatedType = 'all')
+    await prisma.preset.update({
+      where: { id: preset.id },
+      data: {
+        updatedType: "all",
+        updatedAt: new Date(),
+      },
+    });
+
+    // 7. Fragrance componentsJson에서 type 추출 (PUT 응답용)
+    const fragranceComponentsPut = parseFragranceComponents(preset.fragrance.componentsJson);
+    const scentTypePut = fragranceComponentsPut.type;
+
+    // 8. 응답 포맷팅
+    return NextResponse.json({
+      mood: {
+        id: preset.id,
+        name: preset.name,
+        color: preset.light.color,
+        song: {
+          title: preset.sound.name,
+          duration: preset.sound.duration || 180,
+        },
+        scent: {
+          type: scentTypePut.toLowerCase(),  // 타입: "musk", "citrus" 등
+          name: preset.fragrance.name,       // 이름: "Cloud", "Wave" 등
+          color: preset.fragrance.color || preset.light.color,
+        },
+      },
+      updatedDevices: updatedDevices.map((device) => ({
+        id: device.id,
+        type: device.type,
+        name: device.name,
+        battery: device.battery || 100,
+        power: device.power || true,
+        output: {
+          ...(device.type === "manager" || device.type === "light"
+            ? {
+                brightness: device.brightness || preset.light.brightness,
+                color: device.color || preset.light.color,
+              }
+            : {}),
+          ...(device.type === "manager" || device.type === "scent"
+            ? {
+                scentType: preset.fragrance.name,
+                scentLevel: device.scentLevel || 7,
+                ...(device.scentInterval ? { scentInterval: device.scentInterval } : {}),
+              }
+            : {}),
+          ...(device.type === "manager" || device.type === "speaker"
+            ? {
+                volume: device.volume || 65,
+                nowPlaying: preset.sound.name,
+              }
+            : {}),
+        },
+      })),
+    });
+  } catch (error) {
+    console.error("[PUT /api/moods/current] Error:", error);
+    return NextResponse.json(
+      { error: "INTERNAL_ERROR", message: "Failed to update mood" },
+      { status: 500 }
+    );
+  }
 }
+

@@ -1,67 +1,131 @@
 // src/app/api/preprocessing/route.ts
 /**
- * GET /api/preprocessing
- * 
- * 오늘 날짜의 전처리된 데이터 조회
- * 
- * [응답 구조]
- * - average_stress_index: 그 날의 평균 스트레스 지수 (0~100)
- * - recent_stress_index: 최근 스트레스 지수 (0~100)
- * - latest_sleep_score: 최근 수면 점수 (0~100)
- * - latest_sleep_duration: 최근 수면 시간 (분)
- * - weather: 날씨 정보
- * - emotionEvents: 감정 이벤트 (타임스탬프 배열)
- * 
- * [204 응답]
- * - 오늘 날짜의 데이터가 없는 경우
- * - 프론트엔드에서 기본값 사용
+ * [파일 역할]
+ * - 오늘 날짜의 생체 데이터(raw_periodic)를 기반으로
+ *   스트레스/수면/날씨/선호도/감정 데이터를 종합하여 반환하는 API
+ *
+ * [구성 요소]
+ * 1) 평균 스트레스 지수
+ * 2) 최근 스트레스 지수
+ * 3) 가장 최근 수면 점수 (수면 세션 기반)
+ * 4) 가장 최근 수면 시간
+ * 5) 날씨 정보
+ * 6) 사용자 선호도 (향/조명/음악 Top3)
+ * 7) 한숨/웃음 등 감정 신호
  */
 
 import { NextResponse } from "next/server";
-// import { getServerSession } from "next-auth";
+import { startPeriodicListener } from "@/backend/listener/periodicListener";
+import { fetchTodayPeriodicRaw } from "@/backend/jobs/fetchTodayPeriodicRaw";
+import { calcTodaySleepScore } from "@/backend/jobs/calcTodaySleepScore";
+import { fetchWeather } from "@/lib/weather/fetchWeather";
 
-/**
- * [MOCK] 목업 모드
- * TODO: HJ 브랜치의 실제 구현으로 교체
- */
-export async function GET() {
-  // TODO: 세션 확인
-  // const session = await getServerSession();
-  // if (!session) {
-  //   return NextResponse.json(
-  //     { error: "UNAUTHORIZED", message: "Authentication required" },
-  //     { status: 401 }
-  //   );
-  // }
+// Emotion
+import { fetchDailySignals } from "@/lib/moodSignals/fetchDailySignals";
 
-  // TODO: 실제 데이터 조회
-  // const userId = session.user.id;
-  // const todayRawData = await fetchTodayPeriodicRaw(userId);
-  // if (todayRawData.length === 0) {
-  //   return new NextResponse(null, { status: 204 });
-  // }
+// Stress
+import { calculateStressIndex } from "@/lib/stress/calculateStressIndex";
 
-  // [MOCK] 목업 데이터
-  const mockData = {
-    average_stress_index: 45,
-    recent_stress_index: 39,
-    latest_sleep_score: 79,
-    latest_sleep_duration: 600,
-    weather: {
-      temperature: 9.6,
-      humidity: 26,
-      rainType: 0, // 0: 없음, 1: 비, 2: 비/눈, 3: 눈
-      sky: 1, // 1: 맑음, 3: 구름 많음, 4: 흐림
-    },
-    emotionEvents: {
-      laughter: [Date.now() - 3600000, Date.now() - 7200000], // 1시간 전, 2시간 전
-      sigh: [Date.now() - 1800000], // 30분 전
-      anger: [],
-      sadness: [],
-      neutral: [Date.now() - 900000], // 15분 전 (기본값)
-    },
-  };
-
-  return NextResponse.json(mockData, { status: 200 });
+if (typeof window === "undefined") {
+  startPeriodicListener();
 }
 
+const USER_ID = "testUser"; // TODO: JWT/Session 기반 userId로 변경
+
+// ------------------------------------------------------------
+// GET /api/preprocessing
+// ------------------------------------------------------------
+export async function GET() {
+  startPeriodicListener();
+
+  try {
+    // ------------------------------------------------------------
+    // 1) 오늘 날짜 raw_periodic 데이터 조회
+    // ------------------------------------------------------------
+    const todayRawData = await fetchTodayPeriodicRaw(USER_ID);
+
+    if (todayRawData.length === 0) {
+      return new NextResponse(null, { status: 204 });
+    }
+
+    // ------------------------------------------------------------
+    // 2) 스트레스 계산
+    // ------------------------------------------------------------
+    const stressScores = todayRawData.map((raw) => calculateStressIndex(raw));
+
+    const averageStressIndex = Math.round(
+      stressScores.reduce((a, b) => a + b, 0) / stressScores.length
+    );
+
+    const latestRaw = todayRawData[0];
+    const recentStressIndex = calculateStressIndex(latestRaw);
+
+    // ------------------------------------------------------------
+    // 3) 날씨 정보
+    // ------------------------------------------------------------
+    let weather = undefined;
+    try {
+      weather = await fetchWeather();
+    } catch (err) {
+      console.warn("[preprocessing] 날씨 조회 실패:", err);
+    }
+
+    // ------------------------------------------------------------
+    // 4) 수면 점수 (수면 세션 기반)
+    // ------------------------------------------------------------
+    const sleepResult = await calcTodaySleepScore(USER_ID);
+
+    let latestSleepScore: number;
+    let latestSleepDuration: number;
+
+    if (sleepResult.score !== null) {
+      latestSleepScore = sleepResult.score;
+      latestSleepDuration = sleepResult.totalMinutes;
+    } else {
+      // 수면 데이터 없을 때 기본값 (LLM Input 스펙 기준)
+      latestSleepScore = 70;   // 중간 점수
+      latestSleepDuration = 480; // 8시간
+    }
+
+    // ------------------------------------------------------------
+    // 5) 감정 이벤트 (타임스탬프 배열 형식)
+    // ------------------------------------------------------------
+    const signals = await fetchDailySignals(USER_ID);
+
+    // TODO: Firestore에서 실제 타임스탬프 배열 조회
+    // 현재는 Mock 데이터 (count 기반)
+    const emotionEvents = {
+      laughter: Array(signals.laugh_count || 0).fill(Date.now()),
+      sigh: Array(signals.sigh_count || 0).fill(Date.now()),
+      anger: [],
+      sadness: [],
+      neutral: signals.laugh_count === 0 && signals.sigh_count === 0 ? [Date.now()] : [],
+    };
+
+    // ------------------------------------------------------------
+    // 6) 최종 JSON 응답 (LLM Input 스펙에 맞춤)
+    // ------------------------------------------------------------
+    return NextResponse.json(
+      {
+        average_stress_index: averageStressIndex,
+        recent_stress_index: recentStressIndex,
+
+        latest_sleep_score: latestSleepScore,
+        latest_sleep_duration: latestSleepDuration,
+
+        weather: weather || {
+          temperature: 20,
+          humidity: 50,
+          rainType: 0,
+          sky: 1,
+        },
+
+        emotionEvents: emotionEvents,
+      },
+      { status: 200 }
+    );
+  } catch (err) {
+    console.error("[preprocessing] 에러 발생:", err);
+    return NextResponse.json({ error: "INTERNAL_ERROR" }, { status: 500 });
+  }
+}

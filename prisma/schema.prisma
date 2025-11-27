@@ -1,0 +1,219 @@
+///////////////////////////////////////////////////////
+// Prisma Config
+///////////////////////////////////////////////////////
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+///////////////////////////////////////////////////////
+// ENUM
+///////////////////////////////////////////////////////
+
+enum DeviceStatus {
+  active
+  inactive
+}
+
+///////////////////////////////////////////////////////
+// USER
+///////////////////////////////////////////////////////
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  password        String?
+  phone           String?   @unique
+
+  // 프로필
+  familyName      String?
+  givenName       String?
+  birthDate       DateTime?
+  gender          String?
+  profileImageUrl String?
+
+  // 소셜 로그인
+  provider        String?
+  providerId      String?   @unique
+
+  // 설문 여부
+  hasSurvey       Boolean   @default(false)
+
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  devices         Device[]
+  presets         Preset[]
+  preferences     UserPreferences?
+  inquiries       Inquiry[]
+}
+
+///////////////////////////////////////////////////////
+// DEVICE
+///////////////////////////////////////////////////////
+
+model Device {
+  id              String       @id @default(uuid())
+  userId          String
+  name            String
+  type            String       // manager | light | scent | speaker
+  status          DeviceStatus @default(active)
+  registeredAt    DateTime     @default(now())
+
+  // Device 제어용 필드
+  battery         Int?
+  power           Boolean?
+  brightness      Int?
+  color           String?
+  scentType       String?
+  scentLevel      Int?
+  scentInterval   Int?
+  volume          Int?
+  nowPlaying      String?
+
+  // Preset 적용
+  currentPresetId String?
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preset Preset? @relation(fields: [currentPresetId], references: [id])
+
+  // 인덱스 추가 (성능 향상)
+  @@index([userId])
+  @@index([currentPresetId])
+}
+
+///////////////////////////////////////////////////////
+// PRESET COMPONENTS (필수)
+///////////////////////////////////////////////////////
+
+model Fragrance {
+  id             Int      @id @default(autoincrement())
+  name           String
+  description    String?
+  color          String?  // 향의 대표 색상 (HEX 코드)
+  intensityLevel Int
+  operatingMin   Int
+  componentsJson Json
+
+  presets        Preset[]
+}
+
+model Light {
+  id         Int      @id @default(autoincrement())
+  name       String
+  color      String
+  brightness Int
+
+  presets    Preset[]
+}
+
+model Sound {
+  id             Int      @id @default(autoincrement())
+  name           String
+  fileUrl        String
+  duration       Int?     // 곡 길이 (초 단위)
+  componentsJson Json?    // { "genre": "newage", "mood": "calm", ... }
+
+  presets        Preset[]
+}
+
+///////////////////////////////////////////////////////
+// PRESET (무드 정의)
+///////////////////////////////////////////////////////
+
+model Preset {
+  id           String   @id @default(uuid())
+  userId       String
+  fragranceId  Int
+  lightId      Int
+  soundId      Int
+  name         String
+  cluster      String?  // 무드 클러스터: '-' (부정), '0' (중립), '+' (긍정)
+  isDefault    Boolean  @default(false) // 기본 무드 설정 여부
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  updatedType  String?  // all | scent | song | color
+
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fragrance  Fragrance @relation(fields: [fragranceId], references: [id])
+  light      Light     @relation(fields: [lightId], references: [id])
+  sound      Sound     @relation(fields: [soundId], references: [id])
+
+  devices    Device[]
+
+  // 인덱스 추가 (성능 향상)
+  @@index([userId])
+  @@index([userId, isDefault])
+}
+
+///////////////////////////////////////////////////////
+// USER SURVEY (설문)
+///////////////////////////////////////////////////////
+
+model UserPreferences {
+  id                  Int      @id @default(autoincrement())
+  userId              String   @unique
+
+  // 향 선호도 (쉼표로 구분된 문자열)
+  // 예시: "Citrus,Floral,Woody"
+  scentLiked          String?  @db.VarChar(255)
+  scentDisliked       String?  @db.VarChar(255)
+
+  // 색상 선호도 (쉼표로 구분된 문자열)
+  // 예시: "warmWhite,skyBlue"
+  colorLiked          String?  @db.VarChar(255)
+  colorDisliked       String?  @db.VarChar(255)
+
+  // 음악 장르 선호도 (쉼표로 구분된 문자열)
+  // 예시: "newage,classical,jazz"
+  musicLiked          String?  @db.VarChar(255)
+  musicDisliked       String?  @db.VarChar(255)
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+///////////////////////////////////////////////////////
+// INQUIRY (문의)
+///////////////////////////////////////////////////////
+
+model Inquiry {
+  id        Int       @id @default(autoincrement())
+  userId    String
+  subject   String
+  message   String    @db.Text
+  status    String    @default("pending") // pending | answered | closed
+  answer    String?   @db.Text // 관리자 답변
+  answeredBy String? // 답변한 관리자 ID
+  answeredAt DateTime? // 답변 일시
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 인덱스 추가 (성능 향상)
+  @@index([userId])
+  @@index([status])
+}
+
+///////////////////////////////////////////////////////
+// PASSWORD RESET (비밀번호 재설정)
+///////////////////////////////////////////////////////
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  email     String
+  code      String   // 6자리 인증코드
+  token     String?  @unique // 비밀번호 재설정 토큰 (인증 후 발급)
+  expiresAt DateTime // 만료 시간
+  used      Boolean  @default(false) // 사용 여부 (한 번만 사용 가능)
+  createdAt DateTime @default(now())
+
+  @@index([email, code])
+  @@index([email, token])
+}

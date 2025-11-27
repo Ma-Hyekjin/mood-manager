@@ -1,75 +1,157 @@
-import { NextRequest, NextResponse } from "next/server";
-// import { getServerSession } from "next-auth"; // TODO: 백엔드 API 연동 시 사용
-
+// src/app/api/moods/current/song/route.ts
 /**
- * PUT /api/moods/current/song
- * 
- * 노래 변경 (무드 업데이트) API
- * 
- * TODO: 백엔드 서버로 요청을 프록시하거나 직접 호출하도록 구현
- * 
- * 구현 내용:
- * 1. NextAuth 세션 확인 (인증 필수)
- * 2. 요청 본문에서 moodId 추출
- * 3. 유효성 검사 (moodId가 유효한지 확인)
- * 4. 백엔드 서버로 PUT 요청 전달
- *    - URL: ${BACKEND_URL}/api/moods/current/song
- *    - Body: { moodId: string }
- *    - Headers: 세션 정보 포함
- * 5. 백엔드 응답을 그대로 반환
- *    - 응답: { mood: Mood, updatedDevices: Device[] }
- * 
- * 참고:
+ * [파일 역할]
+ * - 노래 변경 (무드 업데이트) API
+ *
+ * [사용되는 위치]
+ * - 프론트엔드에서 노래만 변경할 때 호출
+ *
+ * [주의사항]
  * - 인증이 필요한 엔드포인트
  * - 노래 변경으로 인한 무드 업데이트
- * - 관련 디바이스(Manager) 상태 자동 업데이트
+ * - 관련 디바이스(Manager, Speaker) 상태 자동 업데이트
  * - 같은 무드명의 다른 노래 버전으로 변경
  */
-export async function PUT(request: NextRequest) {
-  // [MOCK] 목업 모드: 목업 무드 반환
-  // TODO: 백엔드 API 연동 시 아래 주석 해제하고 목업 코드 제거
-  //
-  // const session = await getServerSession();
-  //
-  // if (!session) {
-  //   return NextResponse.json(
-  //     { error: "UNAUTHORIZED", message: "Authentication required" },
-  //     { status: 401 }
-  //   );
-  // }
-  //
-  // const body = await request.json();
-  // const { moodId } = body;
-  //
-  // const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
-  // const response = await fetch(`${backendUrl}/api/moods/current/song`, {
-  //   method: "PUT",
-  //   headers: {
-  //     "Content-Type": "application/json",
-  //     "Cookie": request.headers.get("cookie") || "",
-  //   },
-  //   body: JSON.stringify({ moodId }),
-  // });
-  //
-  // if (!response.ok) {
-  //   const error = await response.json();
-  //   return NextResponse.json(error, { status: response.status });
-  // }
-  //
-  // const data = await response.json();
-  // return NextResponse.json(data);
 
-  // 목업 응답: 노래 변경된 무드 반환
-  const body = await request.json();
-  return NextResponse.json({
-    mood: {
-      id: body.moodId || "calm-3",
-      name: "Calm Breeze",
-      color: "#AED6F1",
-      song: { title: "Gentle Rain", duration: 210 },
-      scent: { type: "Green", name: "Sprout", color: "#00FF00" },
-    },
-    updatedDevices: [],
-  });
+import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth/session";
+import { prisma } from "@/lib/prisma";
+import { validateRequiredFields } from "@/lib/utils/validation";
+import { parseFragranceComponents } from "@/types/preset";
+
+export async function PUT(request: NextRequest) {
+  // 1. 세션 검증
+  const sessionOrError = await requireAuth();
+  if (sessionOrError instanceof NextResponse) {
+    return sessionOrError;
+  }
+  const session = sessionOrError;
+
+  try {
+    // 2. 요청 본문 검증
+    const body = await request.json();
+    const validation = validateRequiredFields(body, ["moodId"]);
+    if (!validation.valid) {
+      return NextResponse.json(
+        { error: "INVALID_INPUT", message: "moodId is required" },
+        { status: 400 }
+      );
+    }
+
+    const { moodId } = body;
+
+    // 3. Preset 존재 여부 확인
+    const preset = await prisma.preset.findUnique({
+      where: { id: moodId },
+      include: {
+        fragrance: true,
+        light: true,
+        sound: true,
+      },
+    });
+
+    if (!preset) {
+      return NextResponse.json(
+        { error: "MOOD_NOT_FOUND", message: "Mood not found" },
+        { status: 404 }
+      );
+    }
+
+    // 4. Preset 소유자 확인
+    if (preset.userId !== session.user.id) {
+      return NextResponse.json(
+        { error: "UNAUTHORIZED", message: "You do not own this mood" },
+        { status: 403 }
+      );
+    }
+
+    // 5. 노래 변경이 필요한 디바이스만 업데이트 (Manager, Speaker)
+    const devices = await prisma.device.findMany({
+      where: {
+        userId: session.user.id,
+        power: true,
+        type: {
+          in: ["manager", "speaker"],
+        },
+      },
+    });
+
+    const updatedDevices = await Promise.all(
+      devices.map(async (device) => {
+        return await prisma.device.update({
+          where: { id: device.id },
+          data: {
+            currentPresetId: preset.id,
+            nowPlaying: preset.sound.name,
+          },
+        });
+      })
+    );
+
+    // 6. Preset 업데이트 (updatedType = 'song')
+    await prisma.preset.update({
+      where: { id: preset.id },
+      data: {
+        updatedType: "song",
+        updatedAt: new Date(),
+      },
+    });
+
+    // 7. Fragrance componentsJson에서 type 추출
+    const fragranceComponents = parseFragranceComponents(preset.fragrance.componentsJson);
+    const scentType = fragranceComponents.type;
+
+    // 8. 응답 포맷팅
+    return NextResponse.json({
+      mood: {
+        id: preset.id,
+        name: preset.name,
+        color: preset.fragrance.color || preset.light.color,
+        song: {
+          title: preset.sound.name,
+          duration: preset.sound.duration || 180,
+        },
+        scent: {
+          type: scentType.toLowerCase(),  // 타입: "musk", "citrus" 등
+          name: preset.fragrance.name,    // 이름: "Cloud", "Wave" 등
+          color: preset.fragrance.color || preset.light.color,
+        },
+      },
+      updatedDevices: updatedDevices.map((device) => ({
+        id: device.id,
+        type: device.type,
+        name: device.name,
+        battery: device.battery || 100,
+        power: device.power || true,
+        output: {
+          ...(device.type === "manager" || device.type === "light"
+            ? {
+                brightness: device.brightness || preset.light.brightness,
+                color: device.color || preset.light.color,
+              }
+            : {}),
+          ...(device.type === "manager" || device.type === "scent"
+            ? {
+                scentType: preset.fragrance.name,
+                scentLevel: device.scentLevel || 7,
+                ...(device.scentInterval ? { scentInterval: device.scentInterval } : {}),
+              }
+            : {}),
+          ...(device.type === "manager" || device.type === "speaker"
+            ? {
+                volume: device.volume || 65,
+                nowPlaying: preset.sound.name,
+              }
+            : {}),
+        },
+      })),
+    });
+  } catch (error) {
+    console.error("[PUT /api/moods/current/song] Error:", error);
+    return NextResponse.json(
+      { error: "INTERNAL_ERROR", message: "Failed to update song" },
+      { status: 500 }
+    );
+  }
 }
 

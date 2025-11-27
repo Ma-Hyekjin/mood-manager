@@ -1,58 +1,66 @@
+// src/app/api/auth/survey-status/route.ts
+/**
+ * [파일 역할]
+ * - 설문 조사 완료 여부 확인 API
+ * - 현재 로그인한 사용자의 설문 완료 상태를 조회
+ *
+ * [사용되는 위치]
+ * - 로그인 후 리다이렉트 경로 결정 시 사용
+ * - GET /api/auth/survey-status
+ *
+ * [주의사항]
+ * - 인증이 필요한 엔드포인트
+ * - hasSurvey가 false면 설문 페이지로, true면 홈으로 이동
+ */
+
 import { NextRequest, NextResponse } from "next/server";
-// import { getServerSession } from "next-auth"; // TODO: 백엔드 API 연동 시 사용
+import { requireAuth } from "@/lib/auth/session";
+import { prisma } from "@/lib/prisma";
 
 /**
  * GET /api/auth/survey-status
- * 
- * 설문 조사 완료 여부 확인 API
- * 
- * TODO: 백엔드 서버로 요청을 프록시하거나 직접 호출하도록 구현
- * 
- * 구현 내용:
- * 1. NextAuth 세션 확인 (인증 필수)
- * 2. 세션이 없으면 401 반환
- * 3. 백엔드 서버로 GET 요청 전달
- *    - URL: ${BACKEND_URL}/api/auth/survey-status
- *    - Headers: 세션 정보 포함 (쿠키 또는 Authorization 헤더)
- * 4. 백엔드 응답을 그대로 반환
- *    - 응답: { hasSurvey: boolean }
- * 
- * 참고:
- * - 인증이 필요한 엔드포인트
- * - 로그인 후 설문 페이지 또는 홈 페이지로 리다이렉트 결정에 사용
+ *
+ * 설문 조사 완료 여부 확인
+ *
+ * 응답:
+ * - 성공: { hasSurvey: boolean }
+ * - 실패: { error: "ERROR_CODE", message: "에러 메시지" }
  */
 export async function GET(_request: NextRequest) {
-  // [MOCK] 목업 모드: 항상 설문 미완료로 반환
-  // TODO: 백엔드 API 연동 시 아래 주석 해제하고 목업 코드 제거
-  //
-  // const session = await getServerSession();
-  //
-  // if (!session) {
-  //   return NextResponse.json(
-  //     { error: "UNAUTHORIZED", message: "Authentication required" },
-  //     { status: 401 }
-  //   );
-  // }
-  //
-  // const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
-  // const response = await fetch(`${backendUrl}/api/auth/survey-status`, {
-  //   method: "GET",
-  //   headers: {
-  //     "Cookie": request.headers.get("cookie") || "",
-  //   },
-  // });
-  //
-  // if (!response.ok) {
-  //   return NextResponse.json(
-  //     { error: "INTERNAL_ERROR", message: "Failed to check survey status" },
-  //     { status: 500 }
-  //   );
-  // }
-  //
-  // const data = await response.json();
-  // return NextResponse.json(data);
+  try {
+    // 1. 세션 검증
+    const sessionOrError = await requireAuth();
+    if (sessionOrError instanceof NextResponse) {
+      return sessionOrError; // 401 응답 반환
+    }
+    const session = sessionOrError;
 
-  // 목업 응답: 설문 미완료
-  return NextResponse.json({ hasSurvey: false });
+    // 2. 사용자 조회
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { hasSurvey: true },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "USER_NOT_FOUND", message: "사용자를 찾을 수 없습니다." },
+        { status: 404 }
+      );
+    }
+
+    // 3. 설문 상태 반환
+    return NextResponse.json({ hasSurvey: user.hasSurvey });
+  } catch (error) {
+    console.error(
+      "[GET /api/auth/survey-status] 설문 상태 조회 실패:",
+      error
+    );
+    return NextResponse.json(
+      {
+        error: "INTERNAL_ERROR",
+        message: "설문 상태 조회 중 오류가 발생했습니다.",
+      },
+      { status: 500 }
+    );
+  }
 }
-

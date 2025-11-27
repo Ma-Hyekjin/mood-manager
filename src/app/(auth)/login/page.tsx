@@ -162,6 +162,96 @@ export default function LoginPage() {
     }
   };
 
+  // 소셜 로그인 처리 함수
+  const handleSocialLogin = async (provider: "google" | "kakao" | "naver") => {
+    setIsLoading(true);
+    setErrorMsg("");
+
+    try {
+      const result = await signIn(provider, {
+        redirect: false,
+      });
+
+      if (result?.error) {
+        // 로그인 실패 - 신규 사용자일 가능성
+        console.log(`[Social Login] ${provider} login failed, redirecting to register`);
+        toast.error("Please sign up first.");
+        router.push(`/register?provider=${provider}`);
+        return;
+      }
+
+      if (result?.ok) {
+        // 로그인 성공 - 프로필 완성 여부 체크
+        try {
+          const profileResponse = await fetch("/api/auth/profile", {
+            method: "GET",
+            credentials: "include",
+          });
+
+          if (profileResponse.ok) {
+            const profileData = await profileResponse.json();
+
+            // 필수 정보 (givenName, familyName, birthDate, gender) 중 하나라도 없으면 프로필 완성 필요
+            const isProfileIncomplete =
+              !profileData.givenName ||
+              !profileData.familyName ||
+              !profileData.birthDate ||
+              !profileData.gender;
+
+            if (isProfileIncomplete) {
+              console.log(`[Social Login] Profile incomplete, redirecting to register`);
+              console.log(`[Social Login] Missing fields:`, {
+                givenName: !profileData.givenName,
+                familyName: !profileData.familyName,
+                birthDate: !profileData.birthDate,
+                gender: !profileData.gender,
+              });
+              toast.info("Please complete your profile.");
+
+              // 회원가입 완성 페이지로 리다이렉트 (쿼리 파라미터로 정보 전달)
+              const params = new URLSearchParams({
+                provider: provider,
+                email: profileData.email || "",
+              });
+
+              // 이미 있는 정보도 쿼리 파라미터로 전달 (자동 입력용)
+              if (profileData.givenName) {
+                params.append("name", profileData.givenName);
+              }
+              if (profileData.familyName) {
+                params.append("familyName", profileData.familyName);
+              }
+              if (profileData.birthDate) {
+                params.append("birthDate", profileData.birthDate);
+              }
+              if (profileData.gender) {
+                params.append("gender", profileData.gender);
+              }
+              if (profileData.profileImageUrl) {
+                params.append("image", profileData.profileImageUrl);
+              }
+
+              router.push(`/register?${params.toString()}`);
+              return;
+            }
+          }
+        } catch (err) {
+          console.error("[Social Login] Profile check error:", err);
+          // 프로필 조회 실패해도 홈으로 이동 (설문 팝업에서 처리)
+        }
+
+        // 프로필 완성됨 - 홈으로 이동
+        toast.success("Login successful!");
+        router.push("/home");
+      }
+    } catch (err) {
+      console.error(`[Social Login] ${provider} error:`, err);
+      toast.error("An error occurred during social login.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6">
       <h1 className="text-2xl font-semibold mb-8">Mood Manager</h1>
@@ -262,24 +352,27 @@ export default function LoginPage() {
 
           {/* Google */}
           <button
-            onClick={() => signIn("google")}
-            className="w-12 h-12 rounded-full border flex items-center justify-center hover:bg-gray-100 transition"
+            onClick={() => handleSocialLogin("google")}
+            disabled={isLoading}
+            className="w-12 h-12 rounded-full border flex items-center justify-center hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <FcGoogle size={24} />
           </button>
 
           {/* Kakao */}
           <button
-            onClick={() => signIn("kakao")}
-            className="w-12 h-12 rounded-full border flex items-center justify-center hover:bg-gray-100 transition"
+            onClick={() => handleSocialLogin("kakao")}
+            disabled={isLoading}
+            className="w-12 h-12 rounded-full border flex items-center justify-center hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <SiKakao size={22} color="#FEE500" />
           </button>
 
           {/* Naver */}
           <button
-            onClick={() => signIn("naver")}
-            className="w-12 h-12 rounded-full border flex items-center justify-center hover:bg-gray-100 transition"
+            onClick={() => handleSocialLogin("naver")}
+            disabled={isLoading}
+            className="w-12 h-12 rounded-full border flex items-center justify-center hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <SiNaver size={22} color="#03C75A" />
           </button>

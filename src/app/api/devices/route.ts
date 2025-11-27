@@ -1,131 +1,276 @@
+// src/app/api/devices/route.ts
+/**
+ * [파일 역할]
+ * - 디바이스 목록 조회 및 생성 API
+ * - GET: 현재 사용자의 모든 디바이스 목록 조회
+ * - POST: 새 디바이스 생성
+ *
+ * [사용되는 위치]
+ * - 홈 페이지에서 디바이스 목록 로드 시 사용
+ * - 디바이스 추가 시 사용
+ *
+ * [주의사항]
+ * - 인증이 필요한 엔드포인트
+ * - 사용자별로 디바이스를 분리하여 관리
+ * - 디바이스 타입: manager | light | scent | speaker
+ */
+
 import { NextRequest, NextResponse } from "next/server";
-// import { getServerSession } from "next-auth"; // TODO: 백엔드 API 연동 시 사용
+import { requireAuth } from "@/lib/auth/session";
+import { prisma } from "@/lib/prisma";
+import { validateRequiredFields } from "@/lib/utils/validation";
 
 /**
  * GET /api/devices
- * 
- * 디바이스 목록 조회 API
- * 
- * TODO: 백엔드 서버로 요청을 프록시하거나 직접 호출하도록 구현
- * 
- * 구현 내용:
- * 1. NextAuth 세션 확인 (인증 필수)
- * 2. 세션이 없으면 401 반환
- * 3. 백엔드 서버로 GET 요청 전달
- *    - URL: ${BACKEND_URL}/api/devices
- *    - Headers: 세션 정보 포함 (쿠키 또는 Authorization 헤더)
- * 4. 백엔드 응답을 그대로 반환
- *    - 응답: { devices: Device[] }
- * 
- * 참고:
- * - 인증이 필요한 엔드포인트
- * - 현재 사용자의 디바이스만 반환
- * - 초기 로드 시 호출
+ *
+ * 디바이스 목록 조회
+ *
+ * 응답:
+ * - 성공: { devices: Device[] }
+ * - 실패: { error: "ERROR_CODE", message: "에러 메시지" }
  */
 export async function GET(_request: NextRequest) {
-  // [MOCK] 목업 모드: 빈 디바이스 목록 반환 (프론트엔드에서 목업 데이터 사용)
-  // TODO: 백엔드 API 연동 시 아래 주석 해제하고 목업 코드 제거
-  //
-  // const session = await getServerSession();
-  //
-  // if (!session) {
-  //   return NextResponse.json(
-  //     { error: "UNAUTHORIZED", message: "Authentication required" },
-  //     { status: 401 }
-  //   );
-  // }
-  //
-  // const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
-  // const response = await fetch(`${backendUrl}/api/devices`, {
-  //   method: "GET",
-  //   headers: {
-  //     "Cookie": request.headers.get("cookie") || "",
-  //   },
-  // });
-  //
-  // if (!response.ok) {
-  //   return NextResponse.json(
-  //     { error: "INTERNAL_ERROR", message: "Failed to fetch devices" },
-  //     { status: 500 }
-  //   );
-  // }
-  //
-  // const data = await response.json();
-  // return NextResponse.json(data);
+  try {
+    // 1. 세션 검증
+    const sessionOrError = await requireAuth();
+    if (sessionOrError instanceof NextResponse) {
+      return sessionOrError; // 401 응답 반환
+    }
+    const session = sessionOrError;
 
-  // 목업 응답: 빈 배열 (프론트엔드에서 초기 목업 데이터 사용)
-  return NextResponse.json({ devices: [] });
+    // 2. 사용자의 모든 디바이스 조회
+    const devices = await prisma.device.findMany({
+      where: {
+        userId: session.user.id,
+        status: "active", // 활성화된 디바이스만 조회
+      },
+      orderBy: {
+        registeredAt: "desc",
+      },
+    });
+
+    // 3. 디바이스 데이터 포맷팅
+    const formattedDevices = devices.map((device) => ({
+      id: device.id,
+      type: device.type,
+      name: device.name,
+      battery: device.battery ?? 100,
+      power: device.power ?? true,
+      output: formatDeviceOutput(device),
+    }));
+
+    return NextResponse.json({ devices: formattedDevices });
+  } catch (error) {
+    console.error("[GET /api/devices] 디바이스 목록 조회 실패:", error);
+    return NextResponse.json(
+      {
+        error: "INTERNAL_ERROR",
+        message: "디바이스 목록 조회 중 오류가 발생했습니다.",
+      },
+      { status: 500 }
+    );
+  }
 }
 
 /**
  * POST /api/devices
- * 
- * 디바이스 생성 API
- * 
- * TODO: 백엔드 서버로 요청을 프록시하거나 직접 호출하도록 구현
- * 
- * 구현 내용:
- * 1. NextAuth 세션 확인 (인증 필수)
- * 2. 요청 본문에서 type, name 추출
- * 3. 유효성 검사 (type이 유효한 DeviceType인지 확인)
- * 4. 백엔드 서버로 POST 요청 전달
- *    - URL: ${BACKEND_URL}/api/devices
- *    - Body: { type, name? }
- *    - Headers: 세션 정보 포함
- * 5. 백엔드 응답을 그대로 반환
- *    - 응답: { device: Device }
- * 
- * 참고:
- * - 인증이 필요한 엔드포인트
- * - name이 없으면 백엔드에서 자동 생성
- * - 생성된 디바이스는 기본 설정으로 초기화
+ *
+ * 디바이스 생성
+ *
+ * 요청:
+ * - type (required): 디바이스 타입 ("manager" | "light" | "scent" | "speaker")
+ * - name (optional): 디바이스 이름 (미제공 시 자동 생성)
+ *
+ * 응답:
+ * - 성공: { device: Device }
+ * - 실패: { error: "ERROR_CODE", message: "에러 메시지" }
  */
 export async function POST(request: NextRequest) {
-  // [MOCK] 목업 모드: 목업 디바이스 반환
-  // TODO: 백엔드 API 연동 시 아래 주석 해제하고 목업 코드 제거
-  //
-  // const session = await getServerSession();
-  //
-  // if (!session) {
-  //   return NextResponse.json(
-  //     { error: "UNAUTHORIZED", message: "Authentication required" },
-  //     { status: 401 }
-  //   );
-  // }
-  //
-  // const body = await request.json();
-  // const { type, name } = body;
-  //
-  // const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
-  // const response = await fetch(`${backendUrl}/api/devices`, {
-  //   method: "POST",
-  //   headers: {
-  //     "Content-Type": "application/json",
-  //     "Cookie": request.headers.get("cookie") || "",
-  //   },
-  //   body: JSON.stringify({ type, name }),
-  // });
-  //
-  // if (!response.ok) {
-  //   const error = await response.json();
-  //   return NextResponse.json(error, { status: response.status });
-  // }
-  //
-  // const data = await response.json();
-  // return NextResponse.json(data);
+  try {
+    // 1. 세션 검증
+    const sessionOrError = await requireAuth();
+    if (sessionOrError instanceof NextResponse) {
+      return sessionOrError; // 401 응답 반환
+    }
+    const session = sessionOrError;
 
-  // 목업 응답: 새 디바이스 생성
-  const body = await request.json();
-  const { type, name } = body;
-  
-  return NextResponse.json({
-    device: {
-      id: `${type}-${Date.now()}`,
-      type,
-      name: name || `${type.charAt(0).toUpperCase() + type.slice(1)} 1`,
-      battery: 100,
-      power: true,
-      output: {},
-    },
-  });
+    // 2. 요청 본문 파싱
+    const body = await request.json();
+    const validation = validateRequiredFields(body, ["type"]);
+    if (!validation.valid) {
+      return NextResponse.json(
+        {
+          error: "INVALID_INPUT",
+          message: "디바이스 타입은 필수 입력 항목입니다.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const { type, name } = body;
+
+    // 3. 디바이스 타입 검증
+    const validTypes = ["manager", "light", "scent", "speaker"];
+    if (!validTypes.includes(type)) {
+      return NextResponse.json(
+        {
+          error: "INVALID_INPUT",
+          message: "유효하지 않은 디바이스 타입입니다.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // 4. 디바이스 이름 자동 생성 (미제공 시)
+    let deviceName = name;
+    if (!deviceName) {
+      const existingDevices = await prisma.device.count({
+        where: {
+          userId: session.user.id,
+          type,
+          status: "active",
+        },
+      });
+      const typeNames: Record<string, string> = {
+        manager: "Mood Manager",
+        light: "Smart Light",
+        scent: "Scent Diffuser",
+        speaker: "Smart Speaker",
+      };
+      deviceName = `${typeNames[type]} ${existingDevices + 1}`;
+    }
+
+    // 5. 디바이스 기본 설정값
+    const defaultSettings = getDefaultDeviceSettings(type);
+
+    // 6. 디바이스 생성
+    const device = await prisma.device.create({
+      data: {
+        userId: session.user.id,
+        name: deviceName,
+        type,
+        status: "active",
+        battery: defaultSettings.battery,
+        power: defaultSettings.power,
+        brightness: defaultSettings.brightness,
+        color: defaultSettings.color,
+        scentType: defaultSettings.scentType,
+        scentLevel: defaultSettings.scentLevel,
+        scentInterval: defaultSettings.scentInterval,
+        volume: defaultSettings.volume,
+        nowPlaying: defaultSettings.nowPlaying,
+      },
+    });
+
+    // 7. 응답 데이터 포맷팅
+    const formattedDevice = {
+      id: device.id,
+      type: device.type,
+      name: device.name,
+      battery: device.battery ?? 100,
+      power: device.power ?? true,
+      output: formatDeviceOutput(device),
+    };
+
+    return NextResponse.json({ device: formattedDevice });
+  } catch (error) {
+    console.error("[POST /api/devices] 디바이스 생성 실패:", error);
+    return NextResponse.json(
+      {
+        error: "INTERNAL_ERROR",
+        message: "디바이스 생성 중 오류가 발생했습니다.",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * 디바이스 타입별 기본 설정값 반환
+ */
+function getDefaultDeviceSettings(type: string) {
+  const baseSettings = {
+    battery: 100,
+    power: true,
+    brightness: null,
+    color: null,
+    scentType: null,
+    scentLevel: null,
+    scentInterval: null,
+    volume: null,
+    nowPlaying: null,
+  };
+
+  switch (type) {
+    case "manager":
+      return {
+        ...baseSettings,
+        brightness: 85,
+        color: "#FFD966",
+        scentType: "Lavender",
+        scentLevel: 7,
+        scentInterval: 30,
+        volume: 65,
+        nowPlaying: "Calm Breeze",
+      };
+    case "light":
+      return {
+        ...baseSettings,
+        brightness: 75,
+        color: "#FFD966",
+      };
+    case "scent":
+      return {
+        ...baseSettings,
+        scentType: "Lavender",
+        scentLevel: 7,
+        scentInterval: 30,
+      };
+    case "speaker":
+      return {
+        ...baseSettings,
+        volume: 65,
+        nowPlaying: "Calm Breeze",
+      };
+    default:
+      return baseSettings;
+  }
+}
+
+/**
+ * 디바이스 출력 데이터 포맷팅
+ */
+function formatDeviceOutput(device: {
+  type: string;
+  brightness: number | null;
+  color: string | null;
+  scentType: string | null;
+  scentLevel: number | null;
+  scentInterval: number | null;
+  volume: number | null;
+  nowPlaying: string | null;
+}) {
+  const output: Record<string, unknown> = {};
+
+  // 조명 관련 (light, manager)
+  if (device.type === "light" || device.type === "manager") {
+    if (device.brightness !== null) output.brightness = device.brightness;
+    if (device.color !== null) output.color = device.color;
+  }
+
+  // 향 관련 (scent, manager)
+  if (device.type === "scent" || device.type === "manager") {
+    if (device.scentType !== null) output.scentType = device.scentType;
+    if (device.scentLevel !== null) output.scentLevel = device.scentLevel;
+    if (device.scentInterval !== null)
+      output.scentInterval = device.scentInterval;
+  }
+
+  // 스피커 관련 (speaker, manager)
+  if (device.type === "speaker" || device.type === "manager") {
+    if (device.volume !== null) output.volume = device.volume;
+    if (device.nowPlaying !== null) output.nowPlaying = device.nowPlaying;
+  }
+
+  return output;
 }

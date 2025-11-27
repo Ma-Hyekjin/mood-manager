@@ -81,13 +81,12 @@ export async function inferMoodName(moodAttributes: {
 출력: Peaceful Dawn
 `;
 
-  const prompt = `${fewShotExamples}
-
-이제 다음 무드 속성을 기반으로 해당 무드에 맞는 창의적인 이름을 생성하세요:
-입력: ${JSON.stringify(moodAttributes)}
-출력: (무드 이름만 출력하세요, 예: "Bright Sky", "Blooming Love", "Gentle Rain" 등. 무드의 특성(음악, 색상, 향)을 반영한 자연스럽고 시적인 이름을 생성하세요)`;
-
   // TODO: 백엔드 API 연동 시 주석 해제
+  // const prompt = `${fewShotExamples}
+  //
+  // 이제 다음 무드 속성을 기반으로 해당 무드에 맞는 창의적인 이름을 생성하세요:
+  // 입력: ${JSON.stringify(moodAttributes)}
+  // 출력: (무드 이름만 출력하세요, 예: "Bright Sky", "Blooming Love", "Gentle Rain" 등. 무드의 특성(음악, 색상, 향)을 반영한 자연스럽고 시적인 이름을 생성하세요)`;
   // try {
   //   const response = await openai.chat.completions.create({
   //     model: "gpt-4o-mini", // 비용 효율적인 모델 사용
@@ -123,7 +122,7 @@ export async function inferMoodName(moodAttributes: {
  * JSON 형식으로 응답을 받아 파싱이 용이한 방법입니다.
  * 무드 속성을 기반으로 창의적인 이름을 생성합니다.
  */
-export async function inferMoodNameWithJSONMode(moodAttributes: {
+export async function inferMoodNameWithJSONMode(_moodAttributes: {
   music: {
     title: string;
     genre?: string;
@@ -142,11 +141,12 @@ export async function inferMoodNameWithJSONMode(moodAttributes: {
   moodCategory?: "positive" | "neutral" | "negative";
 }): Promise<string> {
 
-  const fewShotExamples = `
-예시 1: { "music": { "title": "Upbeat Melody", "tempo": "fast" }, "lighting": { "color": "#FFD700" }, "scent": { "type": "Lavender" } } → "Bright Sky"
-예시 2: { "music": { "title": "Romantic Ballad", "tempo": "slow" }, "lighting": { "color": "#FF69B4" }, "scent": { "type": "Rose" } } → "Blooming Love"
-예시 3: { "music": { "title": "Calm Ocean", "tempo": "moderate" }, "lighting": { "color": "#87CEEB" }, "scent": { "type": "Green" } } → "Gentle Rain"
-`;
+  // TODO: 백엔드 API 연동 시 사용
+  // const fewShotExamples = `
+  // 예시 1: { "music": { "title": "Upbeat Melody", "tempo": "fast" }, "lighting": { "color": "#FFD700" }, "scent": { "type": "Lavender" } } → "Bright Sky"
+  // 예시 2: { "music": { "title": "Romantic Ballad", "tempo": "slow" }, "lighting": { "color": "#FF69B4" }, "scent": { "type": "Rose" } } → "Blooming Love"
+  // 예시 3: { "music": { "title": "Calm Ocean", "tempo": "moderate" }, "lighting": { "color": "#87CEEB" }, "scent": { "type": "Green" } } → "Gentle Rain"
+  // `;
 
   // TODO: 백엔드 API 연동 시 주석 해제
   // try {

@@ -4,7 +4,7 @@
  * 오늘 날짜 기준으로 집계해서 반환하는 함수
  */
 
-export async function fetchDailySignals(userId: string) {
+export async function fetchDailySignals(_userId: string) {
     // TODO: Firestore or PostgreSQL 기반으로 일별 기록 조회
     // 지금은 Mock 형태로 제공
     return {

@@ -119,7 +119,7 @@ export function calculateSleepScore(data: PeriodicRaw): number {
   // -------------------------------
   // 3) Movement Score
   // -------------------------------
-  const best_mov = 0;
+  // const best_mov = 0; // 사용되지 않음 (worst_mov만 사용)
   const worst_mov = 60;
 
   const Movement_score = clamp(

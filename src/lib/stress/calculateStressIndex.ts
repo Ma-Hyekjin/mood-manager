@@ -73,7 +73,7 @@ export function calculateStressIndex(data: PeriodicRaw): number {
   // [EDIT] 새로운 필드 추가: heart_rate_max, heart_rate_min, is_fallback 활용
   const HR = data.heart_rate_avg ?? 0;
   const HR_max = data.heart_rate_max ?? 0;
-  const HR_min = data.heart_rate_min ?? 0;
+  // const HR_min = data.heart_rate_min ?? 0; // 사용되지 않음
   const SDNN = data.hrv_sdnn ?? 0;
   const MOV = data.movement_count ?? 0;
   const RESP = data.respiratory_rate_avg ?? 0;
@@ -117,7 +117,7 @@ export function calculateStressIndex(data: PeriodicRaw): number {
   // -----------------------------
   // 3) Movement 기반 스트레스 (움직임 ↑)
   // -----------------------------
-  const best_mov = 0;
+  // const best_mov = 0; // 사용되지 않음 (worst_mov만 사용)
   const worst_mov = 60;
 
   const Movement_stress = clamp(

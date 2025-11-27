@@ -32,7 +32,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { clamp, calculateReward, rgbDistanceScore } from "./preferenceUtils";
+import { calculateReward } from "./preferenceUtils";
 import { getUserPreferences } from "./getPreferences";
 const ALPHA = 0.1; // 학습률 (10%)
 

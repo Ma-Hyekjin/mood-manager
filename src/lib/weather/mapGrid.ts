@@ -45,7 +45,7 @@ export function convertToGrid(lat: number, lon: number): { x: number; y: number 
   const YO = 136; // 기준점 Y좌표
 
   const DEGRAD = Math.PI / 180.0;
-  const RADDEG = 180.0 / Math.PI;
+  // const RADDEG = 180.0 / Math.PI; // 사용되지 않음
 
   const re = RE / GRID;
   const slat1 = SLAT1 * DEGRAD;

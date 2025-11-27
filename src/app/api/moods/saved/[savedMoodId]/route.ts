@@ -20,7 +20,7 @@ import type { ScentType } from "@/types/mood";
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { savedMoodId: string } }
+  { params }: { params: Promise<{ savedMoodId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -32,7 +32,7 @@ export async function DELETE(
     }
 
     const userId = session.user.id;
-    const { savedMoodId } = params;
+    const { savedMoodId } = await params;
 
     // TODO: 실제 DB 연동 시 Firestore에서 삭제
     // Firestore: users/{userId}/savedMoods/{savedMoodId} 삭제
@@ -64,7 +64,7 @@ export async function DELETE(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { savedMoodId: string } }
+  { params }: { params: Promise<{ savedMoodId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -76,7 +76,7 @@ export async function POST(
     }
 
     const userId = session.user.id;
-    const { savedMoodId } = params;
+    const { savedMoodId } = await params;
 
     // TODO: 실제 DB 연동 시 Firestore에서 저장된 무드 조회
     // [MOCK] 목업 응답

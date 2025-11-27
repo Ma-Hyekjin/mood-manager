@@ -206,7 +206,7 @@ export default function LoginPage() {
                 birthDate: !profileData.birthDate,
                 gender: !profileData.gender,
               });
-              toast.info("Please complete your profile.");
+              toast("Please complete your profile.");
 
               // 회원가입 완성 페이지로 리다이렉트 (쿼리 파라미터로 정보 전달)
               const params = new URLSearchParams({

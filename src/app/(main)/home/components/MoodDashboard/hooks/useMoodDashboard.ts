@@ -73,7 +73,7 @@ export function useMoodDashboard({
 
     try {
       // 현재 세그먼트에서 음악 장르 가져오기 (없으면 기본값)
-      const musicGenre = currentSegment?.music?.genre || "newage";
+      const musicGenre = currentSegment?.mood?.music?.genre || "newage";
       const scentType = mood.scent.type;
 
       const response = await fetch("/api/moods/preference", {
@@ -324,7 +324,7 @@ export function useMoodDashboard({
     } else {
       // 무드 저장
       try {
-        const musicGenre = currentSegment?.music?.genre || "newage";
+        const musicGenre = currentSegment?.mood?.music?.genre || "newage";
         const response = await fetch("/api/moods/saved", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

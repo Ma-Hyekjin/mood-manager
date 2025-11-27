@@ -33,16 +33,18 @@ export default function MoodHeader({
   onDoubleClick,
 }: MoodHeaderProps) {
   const [showHeartAnimation, setShowHeartAnimation] = useState(false);
+  const [heartPosition, setHeartPosition] = useState<{ x: number; y: number } | null>(null);
   const [lastClickTime, setLastClickTime] = useState(0);
 
   // 더블클릭 감지
-  const handleDoubleClick = () => {
+  const handleDoubleClick = (e: React.MouseEvent) => {
     const now = Date.now();
     const timeSinceLastClick = now - lastClickTime;
 
     if (timeSinceLastClick < 300) {
       // 더블클릭 감지 (300ms 이내)
       if (!maxReached && onPreferenceClick) {
+        setHeartPosition({ x: e.clientX, y: e.clientY });
         setShowHeartAnimation(true);
         onPreferenceClick();
       }
@@ -54,9 +56,14 @@ export default function MoodHeader({
 
   return (
     <>
-      {showHeartAnimation && (
+      {showHeartAnimation && heartPosition && (
         <HeartAnimation
-          onComplete={() => setShowHeartAnimation(false)}
+          x={heartPosition.x}
+          y={heartPosition.y}
+          onComplete={() => {
+            setShowHeartAnimation(false);
+            setHeartPosition(null);
+          }}
         />
       )}
       <div className="flex items-center justify-between mb-2">

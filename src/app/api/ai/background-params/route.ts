@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prepareLLMInput } from "@/lib/llm/prepareLLMInput";
 import { generatePrompt } from "@/lib/llm/generatePrompt";
 import { generateOptimizedPrompt } from "@/lib/llm/optimizePrompt";
-import { validateAndNormalizeResponse } from "@/lib/llm/validateResponse";
+import { validateAndNormalizeResponse, type BackgroundParamsResponse } from "@/lib/llm/validateResponse";
 import { getCachedResponse, setCachedResponse } from "@/lib/cache/llmCache";
 import OpenAI from "openai";
 
@@ -186,13 +186,24 @@ export async function POST(request: NextRequest) {
       const apiKey = process.env.OPENAI_API_KEY;
       if (!apiKey) {
         console.warn("OPENAI_API_KEY not found, returning minimal mock for scent");
-        const mock = {
-          scentType: llmInput.scentType,
+        const mock: BackgroundParamsResponse = {
+          moodAlias: "Calm Breeze",
+          musicSelection: "Ambient Meditation",
+          moodColor: "#E6F3FF",
+          lighting: {
+            brightness: 50,
+            temperature: 4000,
+          },
           backgroundIcon: { name: "FaLeaf", category: "nature" },
-          source: "mock-no-key" as const,
+          backgroundWind: {
+            direction: 180,
+            speed: 5,
+          },
+          animationSpeed: 5,
+          iconOpacity: 0.7,
         };
         setCachedResponse(cacheKey, mock);
-        return NextResponse.json(mock);
+        return NextResponse.json({ ...mock, source: "mock-no-key" });
       }
 
       const openai = new OpenAI({ apiKey });

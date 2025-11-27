@@ -10,7 +10,6 @@ export interface BackgroundParamsResponse {
   musicSelection: string;
   moodColor: string;
   lighting: {
-    rgb: [number, number, number];
     brightness: number;
     temperature?: number;
   };
@@ -60,7 +59,7 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-// 아이콘 카테고리 → React Icons 매핑
+// 아이콘 카테고리 → React Icons 매핑 (LLM이 선택하는 key 기준)
 const ICON_CATEGORY_MAP: Record<
   string,
   {
@@ -68,21 +67,51 @@ const ICON_CATEGORY_MAP: Record<
     category: string;
   }
 > = {
-  rain: { name: "FaCloudRain", category: "weather" },
-  sun: { name: "FaSun", category: "weather" },
-  cloud: { name: "FaCloud", category: "weather" },
-  leaf: { name: "FaLeaf", category: "nature" },
-  wave: { name: "FaWater", category: "nature" },
-  sparkle: { name: "FaStar", category: "abstract" },
-  snow: { name: "FaSnowflake", category: "weather" },
-  star: { name: "FaStar", category: "abstract" },
-  flower: { name: "FaSpa", category: "nature" },
-  bubble: { name: "FaCircle", category: "abstract" },
+  // Weather (6)
+  sun_soft: { name: "FaRegSun", category: "weather" },
+  moon_calm: { name: "FaRegMoon", category: "weather" },
+  cloud_soft: { name: "FaCloud", category: "weather" },
+  rain_light: { name: "FaCloudRain", category: "weather" },
+  snow_soft: { name: "FaSnowflake", category: "weather" },
+  fog_mist: { name: "FaSmog", category: "weather" },
+
+  // Nature (8)
+  leaf_gentle: { name: "FaLeaf", category: "nature" },
+  tree_peace: { name: "FaTree", category: "nature" },
+  flower_soft: { name: "FaSpa", category: "nature" },
+  wave_slow: { name: "FaWater", category: "nature" },
+  mountain_silhouette: { name: "FaMountain", category: "nature" },
+  forest_deep: { name: "FaTree", category: "nature" },
+  star_sparkle: { name: "FaStar", category: "nature" },
+  breeze_wind: { name: "FaWind", category: "nature" },
+
+  // Objects / Space (8)
+  candle_warm: { name: "FaCandle", category: "object" },
+  coffee_mug: { name: "FaCoffee", category: "object" },
+  book_focus: { name: "FaBookOpen", category: "object" },
+  sofa_relax: { name: "FaCouch", category: "object" },
+  window_light: { name: "FaWindowMaximize", category: "object" },
+  lamp_soft: { name: "FaLightbulb", category: "object" },
+  clock_slow: { name: "FaClock", category: "object" },
+  fireplace_cozy: { name: "FaFire", category: "object" },
+
+  // Emotion / Abstract (8)
+  heart_soft: { name: "FaHeart", category: "abstract" },
+  sparkle_energy: { name: "FaStar", category: "abstract" },
+  bubble_thought: { name: "FaCommentDots", category: "abstract" },
+  orb_glow: { name: "FaCircle", category: "abstract" },
+  pulse_calm: { name: "FaHeartbeat", category: "abstract" },
+  target_focus: { name: "FaBullseye", category: "abstract" },
+  wave_brain: { name: "FaBrain", category: "abstract" },
+  meditation_pose: { name: "FaOm", category: "abstract" },
+
+  // 기본값
+  default: { name: "FaCircle", category: "abstract" },
 };
 
 function mapIconCategory(rawCategory: any): { name: string; category: string } {
-  const key = String(rawCategory || "leaf").toLowerCase().trim();
-  return ICON_CATEGORY_MAP[key] || ICON_CATEGORY_MAP["leaf"];
+  const key = String(rawCategory || "leaf_gentle").toLowerCase().trim();
+  return ICON_CATEGORY_MAP[key] || ICON_CATEGORY_MAP["default"];
 }
 
 /**
@@ -102,17 +131,9 @@ export function validateAndNormalizeResponse(
     throw new Error("Invalid response: moodColor is required and must be a valid HEX color");
   }
 
-  if (!rawResponse.lighting || !Array.isArray(rawResponse.lighting.rgb)) {
-    throw new Error("Invalid response: lighting.rgb is required and must be an array");
-  }
-
-  // RGB 값 정규화 (0-255)
-  const rgb = rawResponse.lighting.rgb.map((v: number) => 
-    clamp(Math.round(Number(v) || 0), 0, 255)
-  ) as [number, number, number];
-
-  if (rgb.length !== 3) {
-    throw new Error("Invalid response: lighting.rgb must have exactly 3 values");
+  // lighting 객체 검증 (rgb는 moodColor와 중복이므로 제거)
+  if (!rawResponse.lighting || typeof rawResponse.lighting !== 'object') {
+    throw new Error("Invalid response: lighting is required and must be an object");
   }
 
   // 밝기 정규화 (0-100)
@@ -188,7 +209,6 @@ export function validateAndNormalizeResponse(
     musicSelection: String(rawResponse.musicSelection || "").trim(),
     moodColor: rawResponse.moodColor,
     lighting: {
-      rgb,
       brightness,
       temperature,
     },

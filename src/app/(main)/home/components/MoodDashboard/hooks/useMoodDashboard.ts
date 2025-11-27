@@ -28,28 +28,15 @@ export function useMoodDashboard({
   const [isLoading, setIsLoading] = useState(true);
   const [playing, setPlaying] = useState(true);
   const [progress] = useState(20);
-  const [isSaved, setIsSaved] = useState(false);
+  const [isSaved, setIsSaved] = useState(false); // 초기값: false (별표가 눌리지 않은 상태)
   const [moodDuration] = useState(30);
   const [preferenceCount, setPreferenceCount] = useState(0); // 현재 무드의 선호도 카운트 (0-3)
   const [maxReached, setMaxReached] = useState(false); // 최대 3번 도달 여부
 
-  // 무드 저장 상태 확인
+  // 무드 저장 상태 확인 (현재는 항상 새 무드에서는 저장되지 않은 상태에서 시작)
+  // 추후 실제 DB 연동 시, 이 로직을 다시 활성화할 수 있음.
   useEffect(() => {
-    const checkSavedStatus = async () => {
-      try {
-        const response = await fetch("/api/moods/saved");
-        if (response.ok) {
-          const data = await response.json() as { savedMoods?: Array<{ moodId: string }> };
-          const isMoodSaved = data.savedMoods?.some(
-            (saved) => saved.moodId === mood.id
-          );
-          setIsSaved(isMoodSaved || false);
-        }
-      } catch (error) {
-        console.error("Error checking saved status:", error);
-      }
-    };
-    checkSavedStatus();
+    setIsSaved(false);
   }, [mood.id]);
 
   // 초기 로딩 시뮬레이션 (실제로는 API 호출 시 사용)

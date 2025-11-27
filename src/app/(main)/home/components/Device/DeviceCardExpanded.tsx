@@ -90,11 +90,12 @@ export default function DeviceCardExpanded({
             e.stopPropagation(); // 부모 클릭(onClose) 방지
             onTogglePower();
           }}
-          className={`p-3 rounded-full transition-all ${
-            device.power
-              ? "bg-green-500 text-white hover:bg-green-600"
-              : "bg-gray-400 text-white hover:bg-gray-500"
-          }`}
+          className="p-3 rounded-full transition-all text-white hover:opacity-80"
+          style={{
+            backgroundColor: device.power
+              ? currentMood?.color || "#10b981" // 무드 컬러 사용
+              : "rgba(156, 163, 175, 1)", // 회색 (꺼짐)
+          }}
           title={device.power ? "Power On" : "Power Off"}
         >
           <Power size={24} />
@@ -109,7 +110,7 @@ export default function DeviceCardExpanded({
           lightColor={lightColor}
           lightBrightness={lightBrightness}
           scentLevel={scentLevel}
-          onUpdateLightColor={(color) => {
+          onUpdateLightColor={device.type === "light" ? undefined : (color) => {
             setLightColor(color);
             onUpdateLightColor?.(color);
           }}

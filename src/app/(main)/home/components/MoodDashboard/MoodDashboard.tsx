@@ -17,23 +17,30 @@
 
 "use client";
 
-import { useState } from "react";
+import { useCallback } from "react";
 import { MoodDashboardSkeleton } from "@/components/ui/Skeleton";
 import type { Mood } from "@/types/mood";
 import { useMoodDashboard } from "./hooks/useMoodDashboard";
 import { useMoodStream } from "@/hooks/useMoodStream";
-import { useBackgroundParams } from "@/hooks/useBackgroundParams";
+import { useMoodColors } from "./hooks/useMoodColors";
+import { useHeartAnimation } from "./hooks/useHeartAnimation";
+import { useSegmentSelector } from "./hooks/useSegmentSelector";
+import type { BackgroundParams } from "@/hooks/useBackgroundParams";
+import { hexToRgba } from "@/lib/utils";
 import MoodHeader from "./components/MoodHeader";
 import ScentControl from "./components/ScentControl";
 import AlbumSection from "./components/AlbumSection";
 import MusicControls from "./components/MusicControls";
 import MoodDuration from "./components/MoodDuration";
+import HeartAnimation from "./components/HeartAnimation";
 
 interface MoodDashboardProps {
   mood: Mood;
   onMoodChange: (mood: Mood) => void;
   onScentChange: (mood: Mood) => void;
   onSongChange: (mood: Mood) => void;
+  backgroundParams?: BackgroundParams | null;
+  onRefreshRequest?: () => void;
 }
 
 export default function MoodDashboard({
@@ -41,6 +48,8 @@ export default function MoodDashboard({
   onMoodChange,
   onScentChange,
   onSongChange,
+  backgroundParams,
+  onRefreshRequest,
 }: MoodDashboardProps) {
   // 무드스트림 관리
   const {
@@ -52,9 +61,7 @@ export default function MoodDashboard({
     setCurrentSegmentIndex,
   } = useMoodStream();
   
-  // 새로고침 버튼 클릭 여부 추적
-  const [shouldFetchLLM, setShouldFetchLLM] = useState(false);
-  
+  // 무드 대시보드 상태 및 핸들러
   const {
     isLoading,
     playing,
@@ -62,7 +69,6 @@ export default function MoodDashboard({
     progress,
     isSaved,
     setIsSaved,
-    moodDuration,
     handleScentClick,
     handlePreviousSong,
     handleNextSong,
@@ -79,69 +85,63 @@ export default function MoodDashboard({
     currentSegment,
   });
 
-  // 새로고침 버튼 핸들러 래핑
-  const handleRefreshWithStream = () => {
-    setShouldFetchLLM(true); // OpenAI 호출 플래그 설정
+  // 색상 계산
+  const { baseColor, accentColor, displayAlias, llmSource } = useMoodColors({
+    mood,
+    backgroundParams,
+  });
+
+  // 하트 애니메이션
+  const { heartAnimation, handleDashboardDoubleClick, clearHeartAnimation } = useHeartAnimation();
+
+  // 세그먼트 선택
+  const { handleSegmentSelect } = useSegmentSelector({
+    moodStream,
+    currentMood: mood,
+    setCurrentSegmentIndex,
+    onMoodChange,
+  });
+
+  // 새로고침 버튼 핸들러 래핑 - 메모이제이션
+  const handleRefreshWithStream = useCallback(() => {
     refreshMoodStream(); // 무드스트림 재생성
     handleRefreshClick(); // 기존 로직 실행
-  };
-
-  // LLM 배경 파라미터 가져오기 (새로고침 버튼 클릭 시에만)
-  const { backgroundParams, isLoading: isLoadingParams } = useBackgroundParams(
-    moodStream,
-    shouldFetchLLM
-  );
-  
-  // OpenAI 호출 완료 후 플래그 리셋
-  if (shouldFetchLLM && !isLoadingParams && backgroundParams) {
-    setShouldFetchLLM(false);
-  }
+    onRefreshRequest?.(); // HomeContent에 LLM 호출 요청
+  }, [refreshMoodStream, handleRefreshClick, onRefreshRequest]);
 
   // 로딩 중 스켈레톤 표시
   if (isLoading || isLoadingStream) {
     return <MoodDashboardSkeleton />;
   }
 
-  // LLM 배경 파라미터가 있으면 사용, 없으면 기본값
-  // (스프레이/앨범 버튼 클릭 시에는 기존 파라미터 유지)
-  const displayColor = backgroundParams?.moodColor || mood.color;
-  const displayAlias = backgroundParams?.moodAlias || mood.name;
-  const llmSource = backgroundParams?.source;
-
-  // 세그먼트 선택 시: 해당 세그먼트로 바로 점프
-  const handleSegmentSelect = (index: number) => {
-    if (!moodStream) return;
-
-    const clampedIndex =
-      index >= 0 && index < moodStream.segments.length
-        ? index
-        : moodStream.segments.length - 1;
-    setCurrentSegmentIndex(clampedIndex);
-    const target = moodStream.segments[clampedIndex];
-    if (target?.mood) {
-      onMoodChange({
-        ...mood,
-        ...target.mood,
-      });
-    }
-  };
-
   return (
-    <div
-      className="rounded-xl px-3 mb-1 w-full bg-white/80 backdrop-blur-sm border border-gray-200"
-      style={{
-        background: `${displayColor}55`, // 50% opacity (LLM 추천 색상 사용)
-        paddingTop: "11px", // 상단 패딩: 16px의 1/3 감소 (16 - 16/3 = 약 11px)
-        paddingBottom: "8px", // 하단 패딩: 16px의 절반 (pb-4 = 16px → 8px)
-      }}
-    >
+    <>
+      {heartAnimation && (
+        <HeartAnimation
+          x={heartAnimation.x}
+          y={heartAnimation.y}
+          onComplete={clearHeartAnimation}
+        />
+      )}
+      <div
+        className="rounded-xl px-3 mb-1 w-full backdrop-blur-sm border"
+        style={{
+          // 무드 컬러를 투명도 높게 카드 배경으로 사용 (뒤 파티클이 비치도록)
+          backgroundColor: hexToRgba(baseColor, 0.25),
+          borderColor: accentColor,
+          paddingTop: "11px",
+          paddingBottom: "8px",
+        }}
+        onDoubleClick={handleDashboardDoubleClick}
+      >
       <MoodHeader
         mood={{
           ...mood,
           name: displayAlias, // LLM 추천 별명 사용
         }}
         isSaved={isSaved}
-        onSaveToggle={() => setIsSaved(!isSaved)}
+        // 저장/삭제 토글 핸들러 (인자 없이 호출)
+        onSaveToggle={setIsSaved}
         onRefresh={handleRefreshWithStream} // 무드스트림 재생성 포함
         llmSource={llmSource}
         onPreferenceClick={handlePreferenceClick}
@@ -149,9 +149,13 @@ export default function MoodDashboard({
         maxReached={maxReached}
       />
 
-      <ScentControl mood={mood} onScentClick={handleScentClick} />
+      <ScentControl mood={mood} onScentClick={handleScentClick} moodColor={accentColor} />
 
-      <AlbumSection mood={mood} onAlbumClick={handleAlbumClick} />
+      <AlbumSection 
+        mood={mood} 
+        onAlbumClick={handleAlbumClick}
+        musicSelection={backgroundParams?.musicSelection}
+      />
 
       <MusicControls
         mood={mood}
@@ -164,11 +168,13 @@ export default function MoodDashboard({
 
       <MoodDuration
         mood={mood}
-        duration={moodDuration}
         currentIndex={currentSegmentIndex}
         totalSegments={moodStream?.segments.length || 10}
         onSegmentSelect={handleSegmentSelect}
+        moodColorCurrent={baseColor}
+        moodColorPast={accentColor}
       />
     </div>
+    </>
   );
 }

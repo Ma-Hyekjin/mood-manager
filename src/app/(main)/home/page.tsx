@@ -23,10 +23,12 @@ import { MOODS } from "@/types/mood";
 import { useDevices } from "@/hooks/useDevices";
 import { useMood } from "@/hooks/useMood";
 import { useSurvey } from "@/hooks/useSurvey";
+import type { BackgroundParams } from "@/hooks/useBackgroundParams";
 
 export default function HomePage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [backgroundParams, setBackgroundParams] = useState<BackgroundParams | null>(null);
 
   // 초기 데이터 설정
   const initialMood = MOODS[0];
@@ -69,18 +71,29 @@ export default function HomePage() {
       <TopNav />
 
       <HomeContent
-        currentMood={currentMood}
-        devices={devices}
-        expandedId={expandedId}
-        setExpandedId={setExpandedId}
-        setDevices={setDevices}
-        onOpenAddModal={() => setShowAddModal(true)}
-        onMoodChange={setCurrentMood}
-        onScentChange={handleScentChange}
-        onSongChange={handleSongChange}
+        moodState={{
+          current: currentMood,
+          onChange: setCurrentMood,
+          onScentChange: handleScentChange,
+          onSongChange: handleSongChange,
+        }}
+        deviceState={{
+          devices,
+          setDevices,
+          expandedId,
+          setExpandedId,
+          onOpenAddModal: () => setShowAddModal(true),
+        }}
+        backgroundState={{
+          params: backgroundParams,
+          onChange: setBackgroundParams,
+        }}
       />
 
-      <BottomNav />
+      <BottomNav 
+        currentMood={currentMood} 
+        moodColor={backgroundParams?.moodColor}
+      />
 
       {showAddModal && (
         <DeviceAddModal

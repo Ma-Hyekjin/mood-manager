@@ -25,3 +25,20 @@ export function blendWithWhite(color: string, whiteRatio: number = 0.9): string 
 
   return `rgb(${blendedR}, ${blendedG}, ${blendedB})`;
 }
+
+/**
+ * HEX 색상을 RGBA 문자열로 변환하는 함수
+ * @param hex - HEX 색상 (예: "#FFD700")
+ * @param alpha - 알파 값 (0~1)
+ * @returns RGBA 색상 문자열 (예: "rgba(255, 215, 0, 0.5)")
+ */
+export function hexToRgba(hex: string, alpha: number): string {
+  const clean = hex.replace("#", "");
+  if (clean.length !== 6) {
+    return `rgba(255, 255, 255, ${alpha})`;
+  }
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}

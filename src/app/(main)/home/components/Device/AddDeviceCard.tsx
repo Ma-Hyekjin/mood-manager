@@ -14,7 +14,7 @@
 
 import { useState } from "react";
 import { type Mood } from "@/types/mood";
-import { blendWithWhite } from "@/lib/utils";
+import { blendWithWhite, hexToRgba } from "@/lib/utils";
 
 interface AddDeviceCardProps {
   onAdd: () => void;
@@ -27,17 +27,25 @@ export default function AddDeviceCard({
 }: AddDeviceCardProps) {
   const [isClicked, setIsClicked] = useState(false);
 
-  // + 아이콘과 윤곽선을 무드 컬러로 변경
+  // 무드 컬러 (원본 HEX)
   const moodColor = currentMood?.color || "#6B7280";
 
-  // 무드 컬러를 흰색에 가깝게 블렌딩 (90% 흰색 + 10% 무드 컬러)
+  // 무드 대시보드 카드와 비슷한 느낌의 컬러 사용
+  // - 대시보드 배경: hexToRgba(baseColor, 0.25)
+  // 여기서는 테두리/아이콘 컬러를 그 배경색 톤과 맞춰서 살짝만 보이도록 설정
+  const borderColor = currentMood
+    ? hexToRgba(moodColor, 0.25)
+    : "rgba(209, 213, 219, 0.4)"; // 기본 연한 회색 (살짝 투명)
+
+  // 카드 배경은 기존처럼 "흰색에 가까운 파스텔" 느낌 유지
+  // - 기본: 90% 흰색 + 10% 무드 컬러
+  // - 클릭 시: 약간 더 진하게 85% 흰색 + 15% 무드 컬러
   const backgroundColor = currentMood
-    ? blendWithWhite(currentMood.color, 0.9)
+    ? blendWithWhite(moodColor, 0.9)
     : "rgb(255, 255, 255)";
 
-  // 클릭 시 색상 변화 (약간 어둡게)
   const clickedBackgroundColor = currentMood
-    ? blendWithWhite(currentMood.color, 0.85) // 더 어둡게
+    ? blendWithWhite(moodColor, 0.85)
     : "rgb(240, 240, 240)";
 
   const handleClick = () => {
@@ -55,19 +63,22 @@ export default function AddDeviceCard({
         isClicked ? "scale-95" : "scale-100"
       }`}
       style={{
-        borderColor: moodColor,
+        // 테두리 색은 대시보드처럼 연한 파스텔톤으로
+        borderColor,
         borderWidth: "1px",
         borderStyle: "solid",
         backgroundColor: isClicked
-          ? `${clickedBackgroundColor}CC`
-          : `${backgroundColor}CC`, // 80% 투명도
+          ? clickedBackgroundColor
+          : backgroundColor,
       }}
       onClick={handleClick}
     >
       <div 
         className="text-4xl font-light transition-colors duration-150"
         style={{
-          color: isClicked ? blendWithWhite(moodColor, 0.3) : moodColor,
+          // + 아이콘도 테두리와 동일한 파스텔 컬러 사용
+          // 클릭 시 약간만 진하게
+          color: isClicked ? blendWithWhite(moodColor, 0.8) : borderColor,
         }}
       >
         +

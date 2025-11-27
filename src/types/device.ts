@@ -18,6 +18,7 @@ export interface Device {
   output: {
     brightness?: number; // light
     color?: string;      // light RGB or HEX
+    temperature?: number; // light color temperature (2000-6500K)
     scentType?: string;  // scent preset
     scentLevel?: number; // scent intensity
     volume?: number;     // speaker volume

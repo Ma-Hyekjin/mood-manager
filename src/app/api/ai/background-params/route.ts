@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const mode = (body.mode || "stream") as "stream" | "scent" | "music";
+    const forceFresh = body.forceFresh === true;
 
     // ------------------------------
     // 1) 공통: 전처리 / 무드스트림 데이터 조회
@@ -92,10 +93,13 @@ export async function POST(request: NextRequest) {
         stressIndex: preprocessed.recent_stress_index,
       };
 
-      const cachedResponse = getCachedResponse(cacheKey);
-      if (cachedResponse) {
-        console.log("[LLM Cache] Cache hit, returning cached response");
-        return NextResponse.json({ ...cachedResponse, source: "cache" });
+      // 대시보드에서 강제 새로고침(forceFresh) 요청이 아닌 경우에만 캐시 사용
+      if (!forceFresh) {
+        const cachedResponse = getCachedResponse(cacheKey);
+        if (cachedResponse) {
+          console.log("[LLM Cache] Cache hit, returning cached response");
+          return NextResponse.json({ ...cachedResponse, source: "cache" });
+        }
       }
 
       // 최적화된 프롬프트 생성 (토큰 최소화, 10개 세그먼트 요약 포함)

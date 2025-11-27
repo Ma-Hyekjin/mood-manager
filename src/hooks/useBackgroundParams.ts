@@ -14,7 +14,6 @@ export interface BackgroundParams {
   musicSelection: string;
   moodColor: string;
   lighting: {
-    rgb: [number, number, number];
     brightness: number;
     temperature?: number;
   };
@@ -64,6 +63,9 @@ export function useBackgroundParams(
           body: JSON.stringify({
             mode: "stream",
             segments: moodStream.segments, // 10개 세그먼트 전체 전달
+            // 대시보드 새로고침 시에는 항상 새로운 LLM 응답을 받기 위해
+            // 캐시를 강제로 우회한다.
+            forceFresh: true,
           }),
         });
 
@@ -82,7 +84,6 @@ export function useBackgroundParams(
           musicSelection: moodStream.currentMood.music.title,
           moodColor: moodStream.currentMood.lighting.color,
           lighting: {
-            rgb: moodStream.currentMood.lighting.rgb,
             brightness: 50,
             temperature: 4000,
           },

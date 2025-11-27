@@ -7,9 +7,10 @@ import type { Mood } from "@/types/mood";
 interface AlbumSectionProps {
   mood: Mood;
   onAlbumClick: () => void;
+  musicSelection?: string; // LLM이 생성한 음악 제목
 }
 
-export default function AlbumSection({ mood, onAlbumClick }: AlbumSectionProps) {
+export default function AlbumSection({ mood, onAlbumClick, musicSelection }: AlbumSectionProps) {
   return (
     <>
       {/* 앨범 이미지 */}
@@ -22,9 +23,9 @@ export default function AlbumSection({ mood, onAlbumClick }: AlbumSectionProps) 
         </button>
       </div>
 
-      {/* 노래 제목 (음악) */}
+      {/* 노래 제목 (음악) - LLM 생성값 우선 사용 */}
       <p className="text-center text-xs font-medium mb-1.5 text-gray-800">
-        {mood.song.title}
+        {musicSelection || mood.song.title}
       </p>
     </>
   );

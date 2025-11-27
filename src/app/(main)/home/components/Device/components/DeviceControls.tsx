@@ -34,18 +34,6 @@ export default function DeviceControls({
       return (
         <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
           <div>
-            <label className="text-xs text-gray-600 mb-1 block">Color</label>
-            <input
-              type="color"
-              value={lightColor}
-              onChange={(e) => {
-                const newColor = e.target.value;
-                onUpdateLightColor?.(newColor);
-              }}
-              className="w-full h-8 rounded cursor-pointer"
-            />
-          </div>
-          <div>
             <label className="text-xs text-gray-600 mb-1 block">
               Brightness: {lightBrightness}%
             </label>
@@ -59,7 +47,7 @@ export default function DeviceControls({
                 onUpdateLightBrightness?.(newBrightness);
               }}
               className="w-full"
-              style={{ accentColor: lightColor }}
+              style={{ accentColor: currentMood?.color || "#FFD700" }}
             />
           </div>
         </div>

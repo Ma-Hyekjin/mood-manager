@@ -20,22 +20,35 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FaHome, FaPalette, FaUser } from "react-icons/fa";
 import React from "react";
+import type { Mood } from "@/types/mood";
 
-export default function BottomNav() {
+interface BottomNavProps {
+  currentMood?: Mood;
+  moodColor?: string; // LLM 추천 무드 색상 (LLM 배경 컬러)
+}
+
+export default function BottomNav({ currentMood, moodColor }: BottomNavProps = {}) {
   const path = usePathname();
+  const homeColor = moodColor || currentMood?.color;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 flex justify-center z-30">
       <div className="w-full max-w-[375px] backdrop-blur-sm border-t border-gray-200 flex justify-around py-2">
-        {navItem("MYPAGE", <FaUser />, "/mypage", path)}
-        {navItem("HOME", <FaHome />, "/home", path)}
-        {navItem("MOOD", <FaPalette />, "/mood", path)}
+        {navItem("MYPAGE", <FaUser />, "/mypage", path, homeColor)}
+        {navItem("HOME", <FaHome />, "/home", path, homeColor)}
+        {navItem("MOOD", <FaPalette />, "/mood", path, homeColor)}
       </div>
     </div>
   );
 }
 
-function navItem(label: string, icon: React.ReactNode, href: string, path: string) {
+function navItem(
+  label: string,
+  icon: React.ReactNode,
+  href: string,
+  path: string,
+  homeColor?: string
+) {
   const active = path.startsWith(href);
 
   // 아이콘별 색상 매핑
@@ -43,6 +56,8 @@ function navItem(label: string, icon: React.ReactNode, href: string, path: strin
     if (isActive) {
       switch (label) {
         case "HOME":
+          // HOME 아이콘은 무드 컬러 사용 (인라인 스타일로 처리)
+          if (homeColor) return "";
           return "text-blue-600";
         case "MOOD":
           return "text-purple-600";
@@ -55,6 +70,14 @@ function navItem(label: string, icon: React.ReactNode, href: string, path: strin
       return "text-gray-400";
     }
   };
+  
+  // HOME 아이콘 색상 (무드 컬러 또는 기본 색상)
+  const getHomeIconStyle = (isActive: boolean) => {
+    if (isActive && homeColor) {
+      return { color: homeColor };
+    }
+    return {};
+  };
 
   return (
     <Link
@@ -63,7 +86,12 @@ function navItem(label: string, icon: React.ReactNode, href: string, path: strin
         active ? "font-semibold" : ""
       }`}
     >
-      <div className={`text-lg ${getIconColor(label, active)}`}>{icon}</div>
+      <div 
+        className={`text-lg ${getIconColor(label, active)}`}
+        style={label === "HOME" ? getHomeIconStyle(active) : {}}
+      >
+        {icon}
+      </div>
       <span className={active ? "text-gray-700" : "text-gray-500"}>{label}</span>
     </Link>
   );

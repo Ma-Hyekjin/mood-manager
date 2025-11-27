@@ -66,18 +66,45 @@ export function generateOptimizedPrompt(
     .slice(0, 3)
     .join(', ');
 
-  // 아이콘 카탈로그 (카테고리 키만 LLM이 선택)
+  // 아이콘 카탈로그 (LLM이 선택할 수 있는 30개 키)
   const iconCatalog = [
-    { key: "rain", desc: "rainy, watery, calm" },
-    { key: "sun", desc: "bright, sunny, energetic" },
-    { key: "cloud", desc: "cloudy, soft, overcast" },
-    { key: "leaf", desc: "nature, green, relaxing" },
-    { key: "wave", desc: "ocean, marine, flowing" },
-    { key: "sparkle", desc: "twinkle, magical, light" },
-    { key: "snow", desc: "snowy, cold, quiet" },
-    { key: "star", desc: "night sky, dreamy" },
-    { key: "flower", desc: "floral, gentle" },
-    { key: "bubble", desc: "soft, playful" },
+    // Weather (6)
+    { key: "sun_soft", desc: "soft sun, warm daylight, gentle energy" },
+    { key: "moon_calm", desc: "night, quiet, calm focus" },
+    { key: "cloud_soft", desc: "cloudy, overcast, soft sky" },
+    { key: "rain_light", desc: "light rain, watery, calm" },
+    { key: "snow_soft", desc: "snow, cold, quiet, still" },
+    { key: "fog_mist", desc: "fog, mist, hazy, dreamy" },
+
+    // Nature (8)
+    { key: "leaf_gentle", desc: "leaves, nature, green, relaxing" },
+    { key: "tree_peace", desc: "forest, trees, deep calm" },
+    { key: "flower_soft", desc: "floral, soft, gentle mood" },
+    { key: "wave_slow", desc: "ocean, marine, slow waves" },
+    { key: "mountain_silhouette", desc: "mountains, horizon, stable" },
+    { key: "forest_deep", desc: "deep forest, grounded, concentrated" },
+    { key: "star_sparkle", desc: "small stars, twinkle, night" },
+    { key: "breeze_wind", desc: "soft wind, air movement" },
+
+    // Objects / Space (8)
+    { key: "candle_warm", desc: "candle, warm light, cozy" },
+    { key: "coffee_mug", desc: "coffee/tea mug, cafe, focus" },
+    { key: "book_focus", desc: "open book, reading, deep focus" },
+    { key: "sofa_relax", desc: "sofa, rest, relaxation" },
+    { key: "window_light", desc: "window with light, view, calm" },
+    { key: "lamp_soft", desc: "soft lamp, indoor light" },
+    { key: "clock_slow", desc: "slow time, no rush" },
+    { key: "fireplace_cozy", desc: "fireplace, cozy, warm evening" },
+
+    // Emotion / Abstract (8)
+    { key: "heart_soft", desc: "warm feelings, gentle heart" },
+    { key: "sparkle_energy", desc: "sparkles, light energy" },
+    { key: "bubble_thought", desc: "thought bubble, thinking" },
+    { key: "orb_glow", desc: "soft glowing orb" },
+    { key: "pulse_calm", desc: "calm pulse, slow rhythm" },
+    { key: "target_focus", desc: "target, high focus point" },
+    { key: "wave_brain", desc: "brain waves, mental flow" },
+    { key: "meditation_pose", desc: "meditation, stillness" },
   ];
   const iconCatalogText = iconCatalog
     .map((i) => `- ${i.key}: ${i.desc}`)
@@ -105,7 +132,7 @@ ${streamInfo ? streamInfo + "\n" : ""}
 [PREFERENCES] music:${musicPrefs} color:${colorPrefs} scent:${scentPrefs}
 
 [ICON CATALOG]
-Choose exactly ONE iconCategory key from the list below:
+Choose exactly ONE icon key from the list below:
 ${iconCatalogText}
 
 Return ONE JSON object only, in English, with the following fields.
@@ -117,8 +144,10 @@ Important:
   "moodAlias": "2-4 word English nickname",
   "musicSelection": "track title / style in English",
   "moodColor": "#HEX",
-  "lighting": {"rgb": [0-255,0-255,0-255], "brightness": 0-100, "temperature": 2000-6500},
-  "backgroundIcon": {"category": "rain | sun | cloud | leaf | wave | sparkle | snow | star | flower | bubble"},
+  "lighting": {"brightness": 0-100, "temperature": 2000-6500},
+  "backgroundIcon": {
+    "category": "one of: sun_soft | moon_calm | cloud_soft | rain_light | snow_soft | fog_mist | leaf_gentle | tree_peace | flower_soft | wave_slow | mountain_silhouette | forest_deep | star_sparkle | breeze_wind | candle_warm | coffee_mug | book_focus | sofa_relax | window_light | lamp_soft | clock_slow | fireplace_cozy | heart_soft | sparkle_energy | bubble_thought | orb_glow | pulse_calm | target_focus | wave_brain | meditation_pose"
+  },
   "backgroundWind": {"direction": 0-360, "speed": 0-10},
   "animationSpeed": 0-10,
   "iconOpacity": 0-1

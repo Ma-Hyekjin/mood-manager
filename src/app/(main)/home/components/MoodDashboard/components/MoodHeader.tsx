@@ -18,6 +18,7 @@ interface MoodHeaderProps {
   onPreferenceClick?: () => void; // 선호도 클릭 핸들러
   preferenceCount?: number; // 현재 무드의 선호도 카운트 (0-3)
   maxReached?: boolean; // 최대 3번 도달 여부
+  onDoubleClick?: (x: number, y: number) => void; // 대시보드 더블클릭 핸들러
 }
 
 export default function MoodHeader({
@@ -29,6 +30,7 @@ export default function MoodHeader({
   onPreferenceClick,
   preferenceCount = 0,
   maxReached = false,
+  onDoubleClick,
 }: MoodHeaderProps) {
   const [showHeartAnimation, setShowHeartAnimation] = useState(false);
   const [lastClickTime, setLastClickTime] = useState(0);
@@ -69,11 +71,6 @@ export default function MoodHeader({
             }
           >
             {mood.name}
-            {preferenceCount > 0 && (
-              <span className="ml-1.5 text-xs text-yellow-500">
-                ⭐ {preferenceCount}/3
-              </span>
-            )}
           </div>
           {llmSource && (
             <span className="text-[10px] text-gray-500">
@@ -89,11 +86,11 @@ export default function MoodHeader({
               onSaveToggle();
             }}
             className={`p-1.5 rounded-full bg-white/40 backdrop-blur hover:bg-white/60 transition ${
-              isSaved ? "text-yellow-500" : "text-gray-800"
+              isSaved ? "text-yellow-500" : "text-gray-400"
             }`}
-            title={isSaved ? "Remove from saved moods" : "Save to mood library"}
+            title={isSaved ? "저장된 무드 (클릭하여 제거)" : "무드 저장하기"}
           >
-            <Star size={16} fill={isSaved ? "currentColor" : "none"} />
+            <Star size={16} fill={isSaved ? "currentColor" : "none"} strokeWidth={isSaved ? 0 : 1.5} />
           </button>
           {/* 새로고침 버튼 (무드 클러스터 내에서 변경) */}
           <button

@@ -209,7 +209,16 @@ export async function PUT(request: NextRequest) {
 
     const updatedDevices = await Promise.all(
       devices.map(async (device) => {
-        const updateData: any = {
+        const updateData: {
+          currentPresetId: string;
+          brightness?: number;
+          color?: string;
+          scentType?: string;
+          scentLevel?: number;
+          scentInterval?: number;
+          volume?: number;
+          nowPlaying?: string;
+        } = {
           currentPresetId: preset.id,
         };
 

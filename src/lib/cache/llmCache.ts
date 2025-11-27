@@ -5,8 +5,10 @@
  * 같은 입력에 대해 캐시된 응답 반환하여 비용 절감
  */
 
+import type { BackgroundParamsResponse } from "@/lib/llm/validateResponse";
+
 interface CacheEntry {
-  response: any;
+  response: BackgroundParamsResponse;
   timestamp: number;
   expiresAt: number;
 }
@@ -42,7 +44,7 @@ function generateCacheKey(input: {
  */
 export function getCachedResponse(
   input: Parameters<typeof generateCacheKey>[0]
-): any | null {
+): BackgroundParamsResponse | null {
   const key = generateCacheKey(input);
   const entry = cache.get(key);
   
@@ -64,7 +66,7 @@ export function getCachedResponse(
  */
 export function setCachedResponse(
   input: Parameters<typeof generateCacheKey>[0],
-  response: any
+  response: BackgroundParamsResponse
 ): void {
   const key = generateCacheKey(input);
   const now = Date.now();

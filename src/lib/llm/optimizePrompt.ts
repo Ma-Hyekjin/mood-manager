@@ -7,9 +7,15 @@
 
 import type { LLMInput } from "./prepareLLMInput";
 
+interface MoodStreamSegmentMood {
+  id: string;
+  name: string;
+  color: string;
+}
+
 interface MoodStreamSegment {
   timestamp: number;
-  mood: any;
+  mood: MoodStreamSegmentMood;
   music: { genre: string; title: string };
   scent: { type: string; name: string };
   lighting: { color: string; rgb: [number, number, number] };

@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { moodStreamScheduler, type ScheduledMoodSegment } from "@/lib/moodStream/scheduler";
+import type { Mood } from "@/types/mood";
 
 export interface MoodStreamSegment {
   id: string;
@@ -14,10 +15,13 @@ export interface MoodStreamSegment {
   moodName: string;
   musicGenre: string;
   scentType: string;
-  mood?: any;
-  music?: any;
-  scent?: any;
-  lighting?: any;
+  mood?: Mood;
+  music?: Mood["song"];
+  scent?: Mood["scent"];
+  lighting?: {
+    color: string;
+    rgb: [number, number, number];
+  };
   duration: number;
 }
 

@@ -109,9 +109,36 @@ const ICON_CATEGORY_MAP: Record<
   default: { name: "FaCircle", category: "abstract" },
 };
 
-function mapIconCategory(rawCategory: any): { name: string; category: string } {
+function mapIconCategory(rawCategory: unknown): { name: string; category: string } {
   const key = String(rawCategory || "leaf_gentle").toLowerCase().trim();
   return ICON_CATEGORY_MAP[key] || ICON_CATEGORY_MAP["default"];
+}
+
+/**
+ * LLM 원시 응답 타입 (OpenAI API 응답 구조)
+ */
+interface RawLLMResponse {
+  moodAlias?: unknown;
+  musicSelection?: unknown;
+  moodColor?: unknown;
+  lighting?: {
+    brightness?: unknown;
+    temperature?: unknown;
+  };
+  backgroundIcon?: {
+    category?: unknown;
+  };
+  backgroundWind?: {
+    direction?: unknown;
+    speed?: unknown;
+  };
+  animationSpeed?: unknown;
+  iconOpacity?: unknown;
+  iconCount?: unknown;
+  iconSize?: unknown;
+  particleEffect?: unknown;
+  gradientColors?: unknown;
+  transitionDuration?: unknown;
 }
 
 /**
@@ -120,7 +147,7 @@ function mapIconCategory(rawCategory: any): { name: string; category: string } {
  * OpenAI 응답에서 필요한 값만 추출하고 검증하여 안전한 형태로 변환
  */
 export function validateAndNormalizeResponse(
-  rawResponse: any
+  rawResponse: RawLLMResponse
 ): BackgroundParamsResponse {
   // 필수 필드 검증
   if (!rawResponse.moodAlias || typeof rawResponse.moodAlias !== 'string') {

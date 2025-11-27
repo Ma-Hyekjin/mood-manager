@@ -403,7 +403,7 @@ The backend server should implement the following APIs (see `docs/API_SPECIFICAT
 - `docs/API_SPECIFICATION.md` - Complete API specification (21 endpoints)
 - `docs/PROJECT_STRUCTURE.md` - Project structure guide
 - `docs/SETUP_GUIDE.md` - Installation and setup guide
-- `docs/DEVELOPMENT_NOTES.md` - 개발 과정, 아키텍처 결정, 이슈 해결, 리팩토링 이력 통합 문서
+- `docs/DEVELOPMENT_NOTES.md` - 프로젝트 개발 과정의 주요 결정사항, 아키텍처 설계, 이슈 해결 과정 기록
 
 전체 문서 목록은 `docs/README.md`를 참고하세요.
 

@@ -302,7 +302,7 @@ LLM으로 동적 배경 파라미터 생성 (10개 세그먼트 전체에 대한
 - ⏳ **백엔드 연동**: 시계열 + 마르코프 체인 예측값 받기 (TODO)
 
 ### 다음 단계
-1. HJ 브랜치 병합 후 `/api/preprocessing` 실제 구현 사용
+1. 백엔드 API 연동 브랜치 병합 후 `/api/preprocessing` 실제 구현 사용
 2. 시계열 + 마르코프 체인으로 `/api/moods/current/generate` 실제 구현
 3. OpenAI API 연동 완료 (`OPENAI_API_KEY` 환경 변수 설정 필요)
 

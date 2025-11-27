@@ -16,8 +16,8 @@
 ### API 관련
 - **[API_SPECIFICATION.md](./API_SPECIFICATION.md)**: 전체 API 명세서 (무드스트림, 전처리, LLM 등)
 
-### 개발 노트
-- **[DEVELOPMENT_NOTES.md](./DEVELOPMENT_NOTES.md)**: 개발 과정, 아키텍처 결정, 이슈 해결, 리팩토링 이력 통합 문서
+### 개발 이력
+- **[DEVELOPMENT_NOTES.md](./DEVELOPMENT_NOTES.md)**: 프로젝트 개발 과정의 주요 결정사항, 아키텍처 설계, 이슈 해결 과정 기록
 
 ### 설치 및 실행
 - **[SETUP_GUIDE.md](./SETUP_GUIDE.md)**: 프로젝트 설치 및 실행 가이드 (버전 정보, 문제 해결 포함)
@@ -29,16 +29,16 @@
 ### 프론트엔드 개발자
 1. 프로젝트 구조: `PROJECT_STRUCTURE.md` - 전체 구조 및 WearOS 앱 정보
 2. API 사용: `API_SPECIFICATION.md` - API 명세 확인
-3. 개발 노트: `DEVELOPMENT_NOTES.md` - 아키텍처, 리팩토링 이력, 이슈 해결
+3. 개발 이력: `DEVELOPMENT_NOTES.md` - 아키텍처, 리팩토링 이력, 이슈 해결
 
 ### 백엔드 개발자
 1. API 명세: `API_SPECIFICATION.md` - 모든 API 엔드포인트 명세
 2. 프로젝트 구조: `PROJECT_STRUCTURE.md` - WearOS 앱 데이터 전송 구조
-3. 개발 노트: `DEVELOPMENT_NOTES.md` - 아키텍처 결정, LLM 통합, 무드스트림 구조
+3. 개발 이력: `DEVELOPMENT_NOTES.md` - 아키텍처 결정, LLM 통합, 무드스트림 구조
 
 ### 프로젝트 관리자
 1. 프로젝트 구조: `PROJECT_STRUCTURE.md` - 전체 프로젝트 구조
-2. 개발 노트: `DEVELOPMENT_NOTES.md` - 개발 이력, 향후 계획, 기술 스택
+2. 개발 이력: `DEVELOPMENT_NOTES.md` - 개발 이력, 향후 계획, 기술 스택
 3. API 명세: `API_SPECIFICATION.md` - API 엔드포인트 전체 목록
 
 ---
@@ -73,14 +73,12 @@
 
 ## 문서 구조
 
-### 팀 문서 (유지)
+### 핵심 문서
 - **README.md**: 문서 인덱스 및 빠른 참조
 - **SETUP_GUIDE.md**: 설치 및 실행 가이드
 - **API_SPECIFICATION.md**: API 명세서
 - **PROJECT_STRUCTURE.md**: 프로젝트 구조 설명
-
-### 통합 문서
-- **DEVELOPMENT_NOTES.md**: 개발 과정의 모든 결정사항, 아키텍처, 이슈 해결, 리팩토링 이력을 통합한 문서
+- **DEVELOPMENT_NOTES.md**: 프로젝트 개발 과정의 주요 결정사항, 아키텍처 설계, 이슈 해결 과정 기록
   - 리팩토링 이력
   - 아키텍처 결정
   - API 설계

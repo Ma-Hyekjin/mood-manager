@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
             id: String(updatedUser.id),
             email: updatedUser.email,
             familyName: updatedUser.familyName,
-            name: updatedUser.givenName,
+            name: updatedUser.givenName,  // [필드명 매핑] DB: givenName → API: name
           },
         });
       }

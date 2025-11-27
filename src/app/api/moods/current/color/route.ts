@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { validateRequiredFields } from "@/lib/utils/validation";
+import { parseFragranceComponents } from "@/types/preset";
 
 export async function PUT(request: NextRequest) {
   // 1. 세션 검증
@@ -97,8 +98,8 @@ export async function PUT(request: NextRequest) {
     });
 
     // 7. Fragrance componentsJson에서 type 추출
-    const fragranceComponents = preset.fragrance.componentsJson as any;
-    const scentType = fragranceComponents?.type || "citrus";
+    const fragranceComponents = parseFragranceComponents(preset.fragrance.componentsJson);
+    const scentType = fragranceComponents.type;
 
     // 8. 응답 포맷팅
     return NextResponse.json({

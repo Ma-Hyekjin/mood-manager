@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { validateRequiredFields } from "@/lib/utils/validation";
+import { parseFragranceComponents, parseSoundComponents } from "@/types/preset";
 
 /**
  * GET /api/moods/current
@@ -92,12 +93,12 @@ export async function GET(_request: NextRequest) {
     });
 
     // 5. Sound componentsJson에서 genre 추출
-    const soundComponents = preset.sound.componentsJson as any;
-    const musicGenre = soundComponents?.genre || "newage";
+    const soundComponents = parseSoundComponents(preset.sound.componentsJson);
+    const musicGenre = soundComponents.genre;
 
     // 6. Fragrance componentsJson에서 type 추출
-    const fragranceComponents = preset.fragrance.componentsJson as any;
-    const scentType = fragranceComponents?.type || "citrus";
+    const fragranceComponents = parseFragranceComponents(preset.fragrance.componentsJson);
+    const scentType = fragranceComponents.type;
 
     // 7. 사용자 데이터 개수 조회 (Firestore 또는 DB)
     // TODO: 실제 Firestore에서 조회하도록 구현
@@ -242,7 +243,11 @@ export async function PUT(request: NextRequest) {
       },
     });
 
-    // 7. 응답 포맷팅
+    // 7. Fragrance componentsJson에서 type 추출 (PUT 응답용)
+    const fragranceComponentsPut = parseFragranceComponents(preset.fragrance.componentsJson);
+    const scentTypePut = fragranceComponentsPut.type;
+
+    // 8. 응답 포맷팅
     return NextResponse.json({
       mood: {
         id: preset.id,
@@ -253,9 +258,9 @@ export async function PUT(request: NextRequest) {
           duration: preset.sound.duration || 180,
         },
         scent: {
-          type: preset.fragrance.name,
-          name: preset.fragrance.name,
-          color: preset.light.color,
+          type: scentTypePut.toLowerCase(),  // 타입: "musk", "citrus" 등
+          name: preset.fragrance.name,       // 이름: "Cloud", "Wave" 등
+          color: preset.fragrance.color || preset.light.color,
         },
       },
       updatedDevices: updatedDevices.map((device) => ({

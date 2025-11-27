@@ -16,12 +16,13 @@ export interface Device {
 
   // 출력값 (디바이스 타입별로 사용되는 필드만 세팅됨)
   output: {
-    brightness?: number; // light
-    color?: string;      // light RGB or HEX
-    scentType?: string;  // scent preset
-    scentLevel?: number; // scent intensity
-    volume?: number;     // speaker volume
-    nowPlaying?: string; // speaker now playing info
+    brightness?: number;   // light
+    color?: string;        // light RGB or HEX
+    scentType?: string;    // scent preset
+    scentLevel?: number;   // scent intensity (레거시)
+    scentInterval?: number; // scent 분사 주기 (5, 10, 15, 20, 25, 30분)
+    volume?: number;       // speaker volume
+    nowPlaying?: string;   // speaker now playing info
   };
 }
 

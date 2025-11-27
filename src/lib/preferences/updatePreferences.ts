@@ -31,11 +31,9 @@
  * - update 이후 반드시 정렬된 Top3 구조가 유지됩니다.
  */
 
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import { clamp, calculateReward, rgbDistanceScore } from "./preferenceUtils";
 import { getUserPreferences } from "./getPreferences";
-
-const prisma = new PrismaClient();
 const ALPHA = 0.1; // 학습률 (10%)
 
 export interface MoodUsage {

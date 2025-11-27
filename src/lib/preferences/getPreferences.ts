@@ -16,8 +16,7 @@
  * - 호출부에서 null 검사 필요.
  */
 
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function getUserPreferences(userId: number) {
   if (!userId) return null;

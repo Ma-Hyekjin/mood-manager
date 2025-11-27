@@ -267,12 +267,14 @@ export default function ScentBackground({
   scentColor,
   intensity,
   className = "",
-  backgroundIcon,
+  backgroundIcon, // TODO: 향후 아이콘 렌더링 구현 예정 (현재 미사용)
   backgroundWind,
   animationSpeed = 4,
   iconOpacity = 0.7,
   backgroundColor,
 }: ScentBackgroundProps) {
+  // backgroundIcon은 향후 구현 예정이므로 현재는 사용하지 않음
+  void backgroundIcon;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | undefined>(undefined);
   const particlesRef = useRef<ScentParticle[]>([]);

@@ -60,6 +60,11 @@ export function mapPreferencesForAI(prefs: UserPreferences | null) {
  * @param liked - 좋아하는 항목들 (쉼표로 구분, 예: "Citrus,Floral,Woody")
  * @param disliked - 싫어하는 항목들 (쉼표로 구분, 예: "Musk,Leathery")
  * @returns PreferenceMap (예: { "citrus": "+", "floral": "+", "musk": "-", "else": "+" })
+ *
+ * [대소문자 정규화 규칙]
+ * - DB 저장: 대문자 시작 (예: "Citrus", "Floral", "Woody")
+ * - LLM Input: 소문자 (예: "citrus", "floral", "woody")
+ * - 이유: src/types/mood.ts의 ScentType과 일치시키기 위함
  */
 function convertToPreferenceMap(
   liked: string | null | undefined,
@@ -67,19 +72,19 @@ function convertToPreferenceMap(
 ): PreferenceMap {
   const result: PreferenceMap = {};
 
-  // 좋아하는 항목들 추가
+  // 좋아하는 항목들 추가 (대문자 → 소문자 변환)
   if (liked) {
     const likedItems = liked.split(',').map(s => s.trim()).filter(Boolean);
     likedItems.forEach(item => {
-      result[item.toLowerCase()] = '+';
+      result[item.toLowerCase()] = '+';  // LLM Input 형식: 소문자
     });
   }
 
-  // 싫어하는 항목들 추가
+  // 싫어하는 항목들 추가 (대문자 → 소문자 변환)
   if (disliked) {
     const dislikedItems = disliked.split(',').map(s => s.trim()).filter(Boolean);
     dislikedItems.forEach(item => {
-      result[item.toLowerCase()] = '-';
+      result[item.toLowerCase()] = '-';  // LLM Input 형식: 소문자
     });
   }
 

@@ -61,10 +61,11 @@ export async function GET(_request: NextRequest) {
     }
 
     // 3. 프로필 데이터 포맷팅
+    // [필드명 매핑 규칙] DB: givenName → API 응답: name
     const profile = {
       email: user.email,
-      name: user.givenName || "",
-      familyName: user.familyName || "",
+      name: user.givenName || "",        // DB의 givenName → API의 name
+      familyName: user.familyName || "",  // DB와 API 동일
       birthDate: user.birthDate
         ? user.birthDate.toISOString().split("T")[0]
         : null,

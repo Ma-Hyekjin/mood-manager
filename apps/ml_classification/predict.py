@@ -1,6 +1,6 @@
 import onnxruntime as ort
 import numpy as np
-import librosa
+from scipy.signal import resample
 import soundfile as sf
 import io
 import base64
@@ -8,12 +8,13 @@ import json
 import firebase_admin
 from firebase_admin import credentials, firestore, initialize_app
 import requests
+from datetime import datetime
 
 # ======== Settings =========
 MODEL_PATH = "/var/task/onnx_model/model_quantized.onnx"           ## docker absolute path
 SAMPLE_RATE = 16000
 
-WEB_SERVER_URL = "http://54.180.50.127/api/~"                      # have to update
+WEB_SERVER_URL = "http://54.180.50.127/ml/emotion"                 # have to update
 
 ort_session = None
 db = None
@@ -51,7 +52,8 @@ def predict_onnx(base64_str):
         if y.ndim > 1:          # ndim == dimension
             y = y.mean(axis=1)
         if sr != SAMPLE_RATE:
-            y = librosa.resample(y, orig_sr=sr, target_sr=SAMPLE_RATE)
+            target_length = int(len(y) *SAMPLE_RATE / sr)
+            y = resample(y, target_length)
 
         # ONNX input
         input_values = y.astype(np.float32)[np.newaxis, :]
@@ -86,6 +88,10 @@ def lambda_handler(event, context):
     for doc in docs:
         doc_id = doc.id
         data = doc.to_dict()
+        timestamp = data['timestamp']
+
+        if hasattr(timestamp, "isoformat"):
+            timestamp = timestamp.isoformat()
 
         doc.reference.update({'ml_processed': 'processing'})
 
@@ -109,7 +115,8 @@ def lambda_handler(event, context):
             params = {
                 "docId": doc_id,
                 "result": label,
-                "confidence": conf
+                "confidence": conf,
+                "timestamp": timestamp
             }
 
             res = requests.get(WEB_SERVER_URL, params=params, timeout=3)

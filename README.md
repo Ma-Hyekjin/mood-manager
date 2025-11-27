@@ -189,10 +189,11 @@ The service analyzes biometric signals collected from the WearOS device (such as
 ```bash
 mood-manager/
  ├── docs/                      # Documentation
- │   ├── API_SPEC.md           # API Specification
- │   ├── API_ROUTES.md         # API Routes Documentation
- │   ├── PAGE_ROLES.md         # Page Roles Documentation
- │   └── RESPONSIVE_DESIGN.md  # Responsive Design Guide
+ │   ├── README.md             # Documentation index
+ │   ├── API_SPECIFICATION.md  # API Specification
+ │   ├── PROJECT_STRUCTURE.md  # Project structure guide
+ │   ├── SETUP_GUIDE.md        # Installation and setup guide
+ │   └── DEVELOPMENT_NOTES.md  # Development notes (integrated)
  ├── public/                    # Static Assets
  │   ├── icons/                # Icon files
  │   └── logos/                # Logo files
@@ -371,7 +372,7 @@ NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
 
 ### Backend API Endpoints Required
 
-The backend server should implement the following APIs (see `docs/API_SPEC.md` for detailed specifications):
+The backend server should implement the following APIs (see `docs/API_SPECIFICATION.md` for detailed specifications):
 
 - **Authentication APIs**: Register, Login, Survey Status, Survey Submit, Survey Skip, Forgot Password, Profile, Account Deletion
 - **Device Management APIs**: List, Create, Delete, Power Toggle, Scent Interval
@@ -399,14 +400,10 @@ The backend server should implement the following APIs (see `docs/API_SPEC.md` f
 자세한 문서는 `docs/` 디렉토리를 참고하세요.
 
 ### 주요 문서
-- `docs/API_SPEC.md` - Complete API specification (21 endpoints)
-- `docs/API_ROUTES.md` - API routes structure guide
-- `docs/TODO.md` - Current tasks and priorities
-- `docs/PAGE_ROLES.md` - Page roles and implementation status
-- `docs/PAGE_COMPLETION_REVIEW.md` - Page implementation status
-- `docs/RESPONSIVE_DESIGN.md` - Responsive design guide
+- `docs/API_SPECIFICATION.md` - Complete API specification (21 endpoints)
 - `docs/PROJECT_STRUCTURE.md` - Project structure guide
 - `docs/SETUP_GUIDE.md` - Installation and setup guide
+- `docs/DEVELOPMENT_NOTES.md` - 개발 과정, 아키텍처 결정, 이슈 해결, 리팩토링 이력 통합 문서
 
 전체 문서 목록은 `docs/README.md`를 참고하세요.
 

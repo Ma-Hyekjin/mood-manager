@@ -20,10 +20,6 @@ import { fetchTodayPeriodicRaw } from "@/backend/jobs/fetchTodayPeriodicRaw";
 import { calcTodaySleepScore } from "@/backend/jobs/calcTodaySleepScore";
 import { fetchWeather } from "@/lib/weather/fetchWeather";
 
-// Preferences
-import { getUserPreferences } from "@/lib/preferences/getPreferences";
-import { mapPreferencesForAI } from "@/lib/preferences/mapPreferencesForAI";
-
 // Emotion
 import { fetchDailySignals } from "@/lib/moodSignals/fetchDailySignals";
 
@@ -91,18 +87,22 @@ export async function GET() {
     }
 
     // ------------------------------------------------------------
-    // 5) 사용자 선호도
-    // ------------------------------------------------------------
-    const prefsRow = await getUserPreferences(1);
-    const preferences = mapPreferencesForAI(prefsRow);
-
-    // ------------------------------------------------------------
-    // 6) 감정(한숨/웃음)
+    // 5) 감정 이벤트 (타임스탬프 배열 형식)
     // ------------------------------------------------------------
     const signals = await fetchDailySignals(USER_ID);
 
+    // TODO: Firestore에서 실제 타임스탬프 배열 조회
+    // 현재는 Mock 데이터 (count 기반)
+    const emotionEvents = {
+      laughter: Array(signals.laugh_count || 0).fill(Date.now()),
+      sigh: Array(signals.sigh_count || 0).fill(Date.now()),
+      anger: [],
+      sadness: [],
+      neutral: signals.laugh_count === 0 && signals.sigh_count === 0 ? [Date.now()] : [],
+    };
+
     // ------------------------------------------------------------
-    // 7) 최종 JSON 응답
+    // 6) 최종 JSON 응답 (LLM Input 스펙에 맞춤)
     // ------------------------------------------------------------
     return NextResponse.json(
       {
@@ -112,17 +112,14 @@ export async function GET() {
         latest_sleep_score: latestSleepScore,
         latest_sleep_duration: latestSleepDuration,
 
-        ...(weather && {
-          weather: {
-            temperature: weather.temperature,
-            humidity: weather.humidity,
-            rainType: weather.rainType,
-            sky: weather.sky,
-          },
-        }),
+        weather: weather || {
+          temperature: 20,
+          humidity: 50,
+          rainType: 0,
+          sky: 1,
+        },
 
-        userPreferences: preferences,  // 키 이름 변경: preferences → userPreferences
-        mood_signals: signals,
+        emotionEvents: emotionEvents,
       },
       { status: 200 }
     );

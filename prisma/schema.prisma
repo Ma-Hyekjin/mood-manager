@@ -112,12 +112,13 @@ model Light {
 }
 
 model Sound {
-  id       Int      @id @default(autoincrement())
-  name     String
-  fileUrl  String
-  duration Int?     // 곡 길이 (초 단위)
+  id             Int      @id @default(autoincrement())
+  name           String
+  fileUrl        String
+  duration       Int?     // 곡 길이 (초 단위)
+  componentsJson Json?    // { "genre": "newage", "mood": "calm", ... }
 
-  presets  Preset[]
+  presets        Preset[]
 }
 
 ///////////////////////////////////////////////////////
@@ -131,6 +132,7 @@ model Preset {
   lightId      Int
   soundId      Int
   name         String
+  cluster      String?  // 무드 클러스터: '-' (부정), '0' (중립), '+' (긍정)
   isDefault    Boolean  @default(false) // 기본 무드 설정 여부
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -156,16 +158,11 @@ model UserPreferences {
   id                  Int      @id @default(autoincrement())
   userId              String   @unique
 
-  fragranceTop1       String?
-  fragranceTop2       String?
-  fragranceTop3       String?
-  preferredLightR     Int?
-  preferredLightG     Int?
-  preferredLightB     Int?
-  preferredBrightness Float?
-  soundGenreTop1      String?
-  soundGenreTop2      String?
-  soundGenreTop3      String?
+  // LLM Input 형식: Record<string, '+' | '-'>
+  // 예시: { "citrus": "+", "floral": "+", "woody": "-", "else": "+" }
+  scentPreferences    Json?    // 향 선호도 (선호: "+", 비선호: "-", 기본: "else: +")
+  colorPreferences    Json?    // 색상 선호도
+  musicPreferences    Json?    // 음악 장르 선호도
 
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt

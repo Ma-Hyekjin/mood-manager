@@ -76,8 +76,8 @@ export async function GET(_request: NextRequest) {
     // 3. Manager 디바이스가 없거나 Preset이 없으면 null 반환
     if (!managerDevice || !managerDevice.preset) {
       return NextResponse.json({
-        mood: null,
-        updatedDevices: [],
+        currentMood: null,
+        userDataCount: 0,
       });
     }
 
@@ -91,50 +91,34 @@ export async function GET(_request: NextRequest) {
       },
     });
 
-    // 5. 응답 포맷팅
+    // 5. Sound componentsJson에서 genre 추출
+    const soundComponents = preset.sound.componentsJson as any;
+    const musicGenre = soundComponents?.genre || "newage";
+
+    // 6. Fragrance componentsJson에서 type 추출
+    const fragranceComponents = preset.fragrance.componentsJson as any;
+    const scentType = fragranceComponents?.type || "citrus";
+
+    // 7. 사용자 데이터 개수 조회 (Firestore 또는 DB)
+    // TODO: 실제 Firestore에서 조회하도록 구현
+    const userDataCount = 0; // 기본값
+
+    // 8. 응답 포맷팅 (LLM Input 스펙에 맞춤)
     return NextResponse.json({
-      mood: {
+      currentMood: {
         id: preset.id,
         name: preset.name,
-        color: preset.light.color,
-        song: {
+        cluster: preset.cluster || "0", // 기본값: 중립
+        music: {
+          genre: musicGenre,
           title: preset.sound.name,
-          duration: preset.sound.duration || 180,
         },
         scent: {
-          type: preset.fragrance.name,
+          type: scentType,
           name: preset.fragrance.name,
-          color: preset.fragrance.color || preset.light.color,
         },
       },
-      updatedDevices: updatedDevices.map((device) => ({
-        id: device.id,
-        type: device.type,
-        name: device.name,
-        battery: device.battery || 100,
-        power: device.power || true,
-        output: {
-          ...(device.type === "manager" || device.type === "light"
-            ? {
-                brightness: device.brightness || preset.light.brightness,
-                color: device.color || preset.light.color,
-              }
-            : {}),
-          ...(device.type === "manager" || device.type === "scent"
-            ? {
-                scentType: preset.fragrance.name,
-                scentLevel: device.scentLevel || 7,
-                ...(device.scentInterval ? { scentInterval: device.scentInterval } : {}),
-              }
-            : {}),
-          ...(device.type === "manager" || device.type === "speaker"
-            ? {
-                volume: device.volume || 65,
-                nowPlaying: preset.sound.name,
-              }
-            : {}),
-        },
-      })),
+      userDataCount: userDataCount,
     });
   } catch (error) {
     console.error("[GET /api/moods/current] Error:", error);

@@ -96,7 +96,11 @@ export async function PUT(request: NextRequest) {
       },
     });
 
-    // 7. 응답 포맷팅
+    // 7. Fragrance componentsJson에서 type 추출
+    const fragranceComponents = preset.fragrance.componentsJson as any;
+    const scentType = fragranceComponents?.type || "citrus";
+
+    // 8. 응답 포맷팅
     return NextResponse.json({
       mood: {
         id: preset.id,
@@ -107,8 +111,8 @@ export async function PUT(request: NextRequest) {
           duration: preset.sound.duration || 180,
         },
         scent: {
-          type: preset.fragrance.name,
-          name: preset.fragrance.name,
+          type: scentType.toLowerCase(),  // 타입: "musk", "citrus" 등
+          name: preset.fragrance.name,    // 이름: "Cloud", "Wave" 등
           color: preset.fragrance.color || preset.light.color,
         },
       },

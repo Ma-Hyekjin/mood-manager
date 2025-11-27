@@ -3,7 +3,8 @@
  * UserPreferences DB row → LLM Input 형식으로 변환
  *
  * [변환 로직]
- * - DB에 이미 LLM Input 형식(Record<string, '+' | '-'>)으로 저장되어 있음
+ * - DB: 쉼표로 구분된 문자열 (예: "Citrus,Floral,Woody")
+ * - LLM Input: Record<string, '+' | '-'> (예: { "citrus": "+", "floral": "+", "else": "+" })
  * - 선호 항목: '+' (좋아함)
  * - 비선호 항목: '-' (싫어함)
  * - 나머지 항목: 'else: +' (기본 긍정)
@@ -18,7 +19,7 @@ type PreferenceMap = Record<string, '+' | '-'>;
  */
 export function mapPreferencesForAI(prefs: UserPreferences | null) {
   // 기본값: 모든 항목 긍정
-  const defaultPreferences = { else: "+" as const };
+  const defaultPreferences: PreferenceMap = { else: "+" };
 
   if (!prefs) {
     return {
@@ -28,31 +29,62 @@ export function mapPreferencesForAI(prefs: UserPreferences | null) {
     };
   }
 
-  // DB에 이미 LLM Input 형식으로 저장되어 있으므로 그대로 반환
+  // 1. 향 선호도 변환
+  const scent = convertToPreferenceMap(
+    prefs.scentLiked,
+    prefs.scentDisliked
+  );
+
+  // 2. 색상 선호도 변환
+  const color = convertToPreferenceMap(
+    prefs.colorLiked,
+    prefs.colorDisliked
+  );
+
+  // 3. 음악 장르 선호도 변환
+  const music = convertToPreferenceMap(
+    prefs.musicLiked,
+    prefs.musicDisliked
+  );
+
   return {
-    music: parseJsonPreference(prefs.musicPreferences) || defaultPreferences,
-    color: parseJsonPreference(prefs.colorPreferences) || defaultPreferences,
-    scent: parseJsonPreference(prefs.scentPreferences) || defaultPreferences,
+    music: music,
+    color: color,
+    scent: scent,
   };
 }
 
 /**
- * JSON 필드를 안전하게 파싱
+ * 쉼표로 구분된 문자열을 PreferenceMap으로 변환
+ *
+ * @param liked - 좋아하는 항목들 (쉼표로 구분, 예: "Citrus,Floral,Woody")
+ * @param disliked - 싫어하는 항목들 (쉼표로 구분, 예: "Musk,Leathery")
+ * @returns PreferenceMap (예: { "citrus": "+", "floral": "+", "musk": "-", "else": "+" })
  */
-function parseJsonPreference(jsonValue: unknown): PreferenceMap | null {
-  if (!jsonValue) {
-    return null;
+function convertToPreferenceMap(
+  liked: string | null | undefined,
+  disliked: string | null | undefined
+): PreferenceMap {
+  const result: PreferenceMap = {};
+
+  // 좋아하는 항목들 추가
+  if (liked) {
+    const likedItems = liked.split(',').map(s => s.trim()).filter(Boolean);
+    likedItems.forEach(item => {
+      result[item.toLowerCase()] = '+';
+    });
   }
 
-  // Prisma Json 타입은 object로 반환됨
-  if (typeof jsonValue === 'object' && jsonValue !== null) {
-    // else 키가 없으면 추가
-    const prefs = jsonValue as PreferenceMap;
-    if (!('else' in prefs)) {
-      return { ...prefs, else: '+' };
-    }
-    return prefs;
+  // 싫어하는 항목들 추가
+  if (disliked) {
+    const dislikedItems = disliked.split(',').map(s => s.trim()).filter(Boolean);
+    dislikedItems.forEach(item => {
+      result[item.toLowerCase()] = '-';
+    });
   }
 
-  return null;
+  // 기본값 추가
+  result.else = '+';
+
+  return result;
 }

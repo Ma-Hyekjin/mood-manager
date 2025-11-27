@@ -64,9 +64,12 @@ export async function GET(_request: NextRequest) {
  *
  * 요청:
  * {
- *   "scentPreferences": { "citrus": "+", "floral": "+", "woody": "-", "else": "+" },
- *   "colorPreferences": { "warmWhite": "+", "skyBlue": "+", "else": "+" },
- *   "musicPreferences": { "newage": "+", "jazz": "-", "else": "+" }
+ *   "scentLiked": ["Citrus", "Floral", "Woody"],
+ *   "scentDisliked": ["Musk", "Leathery"],
+ *   "colorLiked": ["warmWhite", "skyBlue"],
+ *   "colorDisliked": ["red"],
+ *   "musicLiked": ["newage", "classical"],
+ *   "musicDisliked": ["jazz"]
  * }
  *
  * 응답:
@@ -84,25 +87,46 @@ export async function POST(request: NextRequest) {
 
     // 2. 요청 본문 파싱
     const body = await request.json();
-    const { scentPreferences, colorPreferences, musicPreferences } = body;
+    const {
+      scentLiked,
+      scentDisliked,
+      colorLiked,
+      colorDisliked,
+      musicLiked,
+      musicDisliked,
+    } = body;
 
-    // 3. 선호도 저장 (upsert)
+    // 3. 배열을 쉼표로 구분된 문자열로 변환
+    const scentLikedStr = Array.isArray(scentLiked) ? scentLiked.join(',') : null;
+    const scentDislikedStr = Array.isArray(scentDisliked) ? scentDisliked.join(',') : null;
+    const colorLikedStr = Array.isArray(colorLiked) ? colorLiked.join(',') : null;
+    const colorDislikedStr = Array.isArray(colorDisliked) ? colorDisliked.join(',') : null;
+    const musicLikedStr = Array.isArray(musicLiked) ? musicLiked.join(',') : null;
+    const musicDislikedStr = Array.isArray(musicDisliked) ? musicDisliked.join(',') : null;
+
+    // 4. 선호도 저장 (upsert)
     await prisma.userPreferences.upsert({
       where: { userId: session.user.id },
       create: {
         userId: session.user.id,
-        scentPreferences: scentPreferences || { else: "+" },
-        colorPreferences: colorPreferences || { else: "+" },
-        musicPreferences: musicPreferences || { else: "+" },
+        scentLiked: scentLikedStr,
+        scentDisliked: scentDislikedStr,
+        colorLiked: colorLikedStr,
+        colorDisliked: colorDislikedStr,
+        musicLiked: musicLikedStr,
+        musicDisliked: musicDislikedStr,
       },
       update: {
-        scentPreferences: scentPreferences || { else: "+" },
-        colorPreferences: colorPreferences || { else: "+" },
-        musicPreferences: musicPreferences || { else: "+" },
+        scentLiked: scentLikedStr,
+        scentDisliked: scentDislikedStr,
+        colorLiked: colorLikedStr,
+        colorDisliked: colorDislikedStr,
+        musicLiked: musicLikedStr,
+        musicDisliked: musicDislikedStr,
       },
     });
 
-    // 4. User.hasSurvey 업데이트
+    // 5. User.hasSurvey 업데이트
     await prisma.user.update({
       where: { id: session.user.id },
       data: { hasSurvey: true },

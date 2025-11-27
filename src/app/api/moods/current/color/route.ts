@@ -81,7 +81,7 @@ export async function PUT(request: NextRequest) {
           data: {
             currentPresetId: preset.id,
             brightness: preset.light.brightness,
-            color: preset.fragrance.color || preset.light.color,
+            color: preset.light.color,  // 조명 색상 사용
           },
         });
       })
@@ -105,7 +105,7 @@ export async function PUT(request: NextRequest) {
       mood: {
         id: preset.id,
         name: preset.name,
-        color: preset.fragrance.color || preset.light.color,
+        color: preset.light.color,  // 조명 색상 사용
         song: {
           title: preset.sound.name,
           duration: preset.sound.duration || 180,

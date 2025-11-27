@@ -339,5 +339,100 @@ import { GiBabyBottle } from "react-icons/gi";
 
 <GiBabyBottle size={32} color="#FFFFF0" /> //기본
 <GiBabyBottle className="w-8 h-8" color="#FFFFF0" /> //Tailwind CSS
-```
 
+//13.Moon - 달
+import { CiDark } from "react-icons/ci";
+
+<CiDark size={32} color="#F3F300" /> //기본
+<CiDark className="w-8 h-8" color="#F3F300" /> //Tailwind CSS
+
+//14.Heart - 하트
+import { CiHeart } from "react-icons/ci";
+
+<CiHeart size={32} color="#F300F3" /> //기본
+<CiHeart className="w-8 h-8" color="#F300F3" /> //Tailwind CSS
+
+//15.Rainbow - 무지개
+import { CiRainbow } from "react-icons/ci";
+
+<CiRainbow size={32} color="#6F52FF" /> //기본
+<CiRainbow className="w-8 h-8" color="#6F52FF" /> //Tailwind CSS
+
+//16.Snow - 눈
+import { RiSnowflakeFill } from "react-icons/ri";
+
+<RiSnowflakeFill size={32} color="#ACF1FF" /> //기본
+<RiSnowflakeFill className="w-8 h-8" color="#ACF1FF" /> //Tailwind CSS
+
+//17.Sun - 해
+import { WiDaySunny } from "react-icons/wi";
+
+<WiDaySunny size={32} color="#D71D1D" /> //기본
+<WiDaySunny className="w-8 h-8" color="#D71D1D" /> //Tailwind CSS
+
+//18.Star - 별 2개
+import { VscSparkleFilled } from "react-icons/vsc";
+
+<VscSparkleFilled size={32} color="#FFF172" /> //기본
+<VscSparkleFilled className="w-8 h-8" color="#FFF172" /> //Tailwind CSS
+
+//19.Bird - 트위터 새
+import { VscTwitter } from "react-icons/vsc";
+
+<VscTwitter size={32} color="#4BFFF9" /> //기본
+<VscTwitter className="w-8 h-8" color="#4BFFF9" /> //Tailwind CSS
+
+//20.Butterfly - 나비
+import { RiBlueskyLine } from "react-icons/ri";
+
+<RiBlueskyLine size={32} color="#FBFF24" /> //기본
+<RiBlueskyLine className="w-8 h-8" color="#FBFF24" /> //Tailwind CSS
+
+//21.Birthday - 생일케이크
+import { RiCake2Line } from "react-icons/ri";
+
+<RiCake2Line size={32} color="#DA62AC" /> //기본
+<RiCake2Line className="w-8 h-8" color="#DA62AC" /> //Tailwind CSS
+
+//22.Flash - 번개
+import { RiFlashlightFill } from "react-icons/ri";
+
+<RiFlashlightFill={32} color="#FFF600" /> //기본
+<RiFlashlightFill className="w-8 h-8" color="#FFF600" /> //Tailwind CSS
+
+//23.Mickey - 미키마우스
+import { RiMickeyFill } from "react-icons/ri";
+
+<RiMickeyFill={32} color="#000000" /> //기본
+<RiMickeyFill className="w-8 h-8" color="#000000" /> //Tailwind CSS
+
+//24.Trip - 비행기
+import { RiPlaneFill } from "react-icons/ri";
+
+<RiPlaneFill={32} color="#00FFF6" /> //기본
+<RiPlaneFill className="w-8 h-8" color="#00FFF6" /> //Tailwind CSS
+
+//25.Sleep - 잠ZZ
+import { RiZzzFill } from "react-icons/ri";
+
+<RiZzzFill={32} color="#000000" /> //기본
+<RiZzzFill className="w-8 h-8" color="#000000" /> //Tailwind CSS
+
+//26.Coffee - 커피
+import { FaCoffee } from "react-icons/fa";
+
+<FaCoffee={32} color="#843700" /> //기본
+<FaCoffee className="w-8 h-8" color="#843700" /> //Tailwind CSS
+
+//27.Pencil - 연필
+import { PiPencilFill } from "react-icons/pi";
+
+<PiPencilFill={32} color="#AE7A55" /> //기본
+<PiPencilFill className="w-8 h-8" color="#098FE2" /> //Tailwind CSS
+
+//28.Rain - 우산
+import { CiUmbrella } from "react-icons/ci";
+
+<CiUmbrella={32} color="#AE7A55" /> //기본
+<CiUmbrella className="w-8 h-8" color="#098FE2" /> //Tailwind CSS
+```

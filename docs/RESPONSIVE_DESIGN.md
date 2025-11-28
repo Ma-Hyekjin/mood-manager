@@ -428,11 +428,11 @@ import { FaCoffee } from "react-icons/fa";
 import { PiPencilFill } from "react-icons/pi";
 
 <PiPencilFill={32} color="#AE7A55" /> //기본
-<PiPencilFill className="w-8 h-8" color="#098FE2" /> //Tailwind CSS
+<PiPencilFill className="w-8 h-8" color="#AE7A55" /> //Tailwind CSS
 
 //28.Rain - 우산
 import { CiUmbrella } from "react-icons/ci";
 
-<CiUmbrella={32} color="#AE7A55" /> //기본
+<CiUmbrella={32} color="#098FE2" /> //기본
 <CiUmbrella className="w-8 h-8" color="#098FE2" /> //Tailwind CSS
 ```

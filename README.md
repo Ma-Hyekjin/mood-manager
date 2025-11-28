@@ -255,51 +255,51 @@ mood-manager/
 
 ## Getting Started
 
-### 필수 요구사항
+### Requirements
 
-- **Node.js**: 18.x 이상 (권장: 22.21.0)
-- **npm**: 8.x 이상 (권장: 10.9.4)
+- **Node.js**: 18.x or higher (recommended: 22.21.0)
+- **npm**: 8.x or higher (recommended: 10.9.4)
 
-**Node.js 버전 확인**:
+**Check Node.js version**:
 ```bash
 node --version
 ```
 
-**nvm 사용 시** (프로젝트 루트에 `.nvmrc` 파일 포함):
+**If using nvm** (`.nvmrc` file is included in the project root):
 ```bash
 nvm use
 ```
 
-### 설치 및 실행
+### Installation and Setup
 
-1. **의존성 설치:**
+1. **Install dependencies:**
 
     ```bash
     npm install
     ```
 
-2. **환경 변수 설정:**
+2. **Configure environment variables:**
 
-    프로젝트 루트에 `.env.local` 파일을 생성하고 다음 내용을 추가:
+    Create a `.env.local` file in the project root and add the following:
 
     ```env
     NEXTAUTH_URL=http://localhost:3000
     NEXTAUTH_SECRET=your-secret-key-here
     ```
 
-    자세한 환경 변수 설정은 `docs/SETUP_GUIDE.md`를 참고하세요.
+    For detailed environment variable configuration, refer to `docs/SETUP_GUIDE.md`.
 
-3. **개발 서버 실행:**
+3. **Run the development server:**
 
     ```bash
     npm run dev
     ```
 
-    브라우저에서 `http://localhost:3000`으로 접속할 수 있습니다.
+    You can access the application at `http://localhost:3000` in your browser.
 
-### 상세 설치 가이드
+### Detailed Setup Guide
 
-자세한 설치 방법, 문제 해결, 버전 정보는 **[docs/SETUP_GUIDE.md](./docs/SETUP_GUIDE.md)**를 참고하세요.
+For detailed installation instructions, troubleshooting, and version information, refer to **[docs/SETUP_GUIDE.md](./docs/SETUP_GUIDE.md)**.
 
 -----
 
@@ -344,15 +344,15 @@ The backend server should implement the following APIs (see `docs/API_SPECIFICAT
 
 ## Documentation
 
-자세한 문서는 `docs/` 디렉토리를 참고하세요.
+For detailed documentation, refer to the `docs/` directory.
 
-### 주요 문서
+### Key Documents
 - `docs/API_SPECIFICATION.md` - Complete API specification (21 endpoints)
 - `docs/PROJECT_STRUCTURE.md` - Project structure guide
 - `docs/SETUP_GUIDE.md` - Installation and setup guide
-- `docs/DEVELOPMENT_NOTES.md` - 프로젝트 개발 과정의 주요 결정사항, 아키텍처 설계, 이슈 해결 과정 기록
+- `docs/REFACTORING_PLAN.md` - Refactoring plan and future work
 
-전체 문서 목록은 `docs/README.md`를 참고하세요.
+For the complete document list, refer to `docs/README.md`.
 
 -----
 

@@ -1,0 +1,3 @@
+module.exports=[40777,a=>{"use strict";a.s(["default",()=>f]);var b=a.i(87924),c=a.i(72131),d=a.i(75003),e=a.i(50944);function f(){let a=(0,e.useRouter)(),{status:f}=(0,d.useSession)();return(0,c.useEffect)(()=>{"loading"!==f&&("authenticated"===f?a.replace("/home"):a.replace("/login"))},[f,a]),(0,b.jsx)("div",{className:"min-h-screen flex items-center justify-center",children:(0,b.jsx)("h1",{className:"text-2xl font-semibold",children:"Mood Manager"})})}}];
+
+//# sourceMappingURL=src_app_page_tsx_a7111f3e._.js.map

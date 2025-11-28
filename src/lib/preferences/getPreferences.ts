@@ -18,7 +18,7 @@
 
 import { prisma } from "@/lib/prisma";
 
-export async function getUserPreferences(userId: number) {
+export async function getUserPreferences(userId: string) {
   if (!userId) return null;
 
   const preferences = await prisma.userPreferences.findUnique({

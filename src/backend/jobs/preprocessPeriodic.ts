@@ -53,10 +53,8 @@ export async function handleNewPeriodicDocument(
     let weather;
     try {
       weather = await fetchWeather();
-      // eslint-disable-next-line no-console
       console.log("[preprocessPeriodic] 날씨 데이터 조회 성공:", weather);
     } catch (weatherError) {
-      // eslint-disable-next-line no-console
       console.warn(
         "[preprocessPeriodic] 날씨 데이터 조회 실패, 전처리는 계속 진행:",
         weatherError
@@ -71,7 +69,6 @@ export async function handleNewPeriodicDocument(
     setProcessedMetrics(metrics.sleep_score ?? 0, metrics.stress_score);
 
     // (디버깅/로그용)
-    // eslint-disable-next-line no-console
     console.log(
       "[preprocessPeriodic] 전처리 완료:",
       metrics,
@@ -80,7 +77,6 @@ export async function handleNewPeriodicDocument(
       ")"
     );
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error("[preprocessPeriodic] 전처리 중 오류 발생:", error);
   }
 }

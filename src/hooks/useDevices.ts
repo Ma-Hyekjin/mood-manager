@@ -10,36 +10,11 @@ const PRIORITY: Record<Device["type"], number> = {
   scent: 4,
 };
 
-// 타입별 기본 output 설정
-function getDefaultOutput(type: Device["type"]): Device["output"] {
-  switch (type) {
-    case "manager":
-      return {
-        brightness: 80,
-        color: "#ffffff",
-        scentType: "Lavender",
-        scentLevel: 5,
-        volume: 50,
-        nowPlaying: "Calm Breeze",
-      };
-    case "light":
-      return {
-        brightness: 70,
-        color: "#FFD966",
-      };
-    case "scent":
-      return {
-        scentType: "Rose",
-        scentLevel: 5,
-      };
-    case "speaker":
-      return {
-        volume: 60,
-        nowPlaying: "Ocean Waves",
-      };
-    default:
-      return {};
-  }
+// 타입별 기본 output 설정 (향후 사용 예정)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _getDefaultOutput(_type: Device["type"]): Device["output"] {
+  // 향후 사용 예정
+  return {};
 }
 
 /**
@@ -59,6 +34,12 @@ export function useDevices(currentMood: Mood) {
           method: "GET",
           credentials: "include",
         });
+
+        // 401 에러 시 로그인 페이지로 리다이렉트
+        if (response.status === 401) {
+          window.location.href = "/login";
+          return;
+        }
 
         if (!response.ok) {
           throw new Error("Failed to fetch devices");
@@ -140,7 +121,7 @@ export function useDevices(currentMood: Mood) {
       setDevices((prev) => {
         const updated = [...prev, data.device];
         // 우선순위 + ID 순 정렬
-        return updated.sort((a, b) => {
+        return updated.sort((a: Device, b: Device) => {
           if (PRIORITY[a.type] !== PRIORITY[b.type])
             return PRIORITY[a.type] - PRIORITY[b.type];
 

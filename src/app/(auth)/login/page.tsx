@@ -66,93 +66,46 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // [MOCK] 이메일/비밀번호 로그인 (NextAuth Credentials Provider 사용)
-      // TODO: 백엔드 API로 교체 필요
-      // API 명세:
-      // NextAuth Credentials Provider가 자동으로 인증 처리
-      // - authorize 함수에서 백엔드 API를 호출하여 인증
-      // - 성공 시 세션 생성, 실패 시 null 반환
-      const MOCK_EMAIL = "test@example.com";
-      const MOCK_PASSWORD = "1234";
+      // NextAuth Credentials Provider를 통한 실제 인증
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
 
-      if (email === MOCK_EMAIL && password === MOCK_PASSWORD) {
-        const result = await signIn("credentials", {
-          email,
-          password,
-          redirect: false,
-        });
+      if (result?.error) {
+        // Rate limiting: 실패 시 시도 횟수 증가
+        const newAttempts = loginAttempts + 1;
+        setLoginAttempts(newAttempts);
 
-        if (result?.error) {
-          const message = "Invalid email or password.";
+        // 5회 실패 시 15분 잠금
+        if (newAttempts >= 5) {
+          const lockTime = new Date();
+          lockTime.setMinutes(lockTime.getMinutes() + 15);
+          setLockUntil(lockTime);
+          setIsLocked(true);
+          const message = "Too many failed login attempts. Your account is locked for 15 minutes.";
           setErrorMsg(message);
           toast.error(message);
+          setIsLoading(false);
           return;
         }
 
-        // [MOCK] 설문을 하지 않은 상태라고 가정
-        setLoginAttempts(0); // 성공 시 시도 횟수 리셋
-        setIsLoading(false);
-        toast.success("Login successful!");
-        router.push("/home");
-        return;
-      }
-
-      // Rate limiting: 실패 시 시도 횟수 증가
-      const newAttempts = loginAttempts + 1;
-      setLoginAttempts(newAttempts);
-
-      // 5회 실패 시 15분 잠금
-      if (newAttempts >= 5) {
-        const lockTime = new Date();
-        lockTime.setMinutes(lockTime.getMinutes() + 15);
-        setLockUntil(lockTime);
-        setIsLocked(true);
-        const message = "Too many failed login attempts. Your account is locked for 15 minutes.";
+        const message = `Invalid email or password. (${newAttempts}/5 attempts)`;
         setErrorMsg(message);
-        toast.error(message);
+        toast.error("Invalid email or password.");
         setIsLoading(false);
         return;
       }
 
-      const message = `Invalid email or password. (${newAttempts}/5 attempts)`;
-      setErrorMsg(message);
-      toast.error("Invalid email or password.");
+      // 로그인 성공
+      setLoginAttempts(0); // 성공 시 시도 횟수 리셋
       setIsLoading(false);
+      toast.success("Login successful!");
 
-      // const result = await signIn("credentials", {
-      //   email,
-      //   password,
-      //   redirect: false,
-      // });
-      //
-      // if (result?.error) {
-      //   setErrorMsg("Invalid email or password.");
-      //   return;
-      // }
-      //
-      // try {
-      //   const surveyResponse = await fetch("/api/auth/survey-status", {
-      //     method: "GET",
-      //     headers: {
-      //       "Content-Type": "application/json",
-      //     },
-      //     credentials: "include",
-      //   });
-      //
-      //   if (surveyResponse.ok) {
-      //     const surveyData = await surveyResponse.json();
-      //     if (!surveyData.hasSurvey) {
-      //       router.push("/survey");
-      //     } else {
-      //       router.push("/home");
-      //     }
-      //   } else {
-      //     router.push("/home");
-      //   }
-      // } catch (error) {
-      //   console.error("Error checking survey status:", error);
-      //   router.push("/home");
-      // }
+      // 설문조사는 홈 화면의 SurveyOverlay로 처리되므로
+      // 로그인 후 바로 홈으로 이동
+      router.push("/home");
     } catch (err) {
       console.error(err);
       const message = "An unexpected error occurred. Please try again.";

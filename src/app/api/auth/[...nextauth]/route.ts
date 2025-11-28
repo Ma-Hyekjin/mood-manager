@@ -22,6 +22,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/auth/password";
 import { normalizePhoneNumber } from "@/lib/utils/validation";
+import { isAdminAccount } from "@/lib/auth/mockMode";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || "development-secret-key-change-in-production",
@@ -40,7 +41,20 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          // 1. DB에서 사용자 조회
+          // 1. 관리자 계정 확인 (DB 조회 전에 먼저 확인)
+          const isAdmin = isAdminAccount(credentials.email, credentials.password);
+          
+          if (isAdmin) {
+            console.log("[NextAuth] Admin account detected - Mock mode enabled");
+            // 관리자 계정은 DB 조회 없이 바로 통과 (목업 모드)
+            return {
+              id: "admin-mock-user-id",
+              email: credentials.email,
+              name: "Admin (Mock Mode)",
+            };
+          }
+
+          // 2. 일반 사용자: DB에서 사용자 조회
           const user = await prisma.user.findUnique({
             where: {
               email: credentials.email,
@@ -60,13 +74,13 @@ export const authOptions: NextAuthOptions = {
             hasPassword: !!user?.password,
           });
 
-          // 2. 사용자가 없거나 비밀번호가 없으면 실패
+          // 3. 사용자가 없거나 비밀번호가 없으면 실패
           if (!user || !user.password) {
             console.log("[NextAuth] Authentication failed: User not found or no password");
             return null;
           }
 
-          // 3. 비밀번호 검증
+          // 4. 비밀번호 검증
           const isPasswordValid = await verifyPassword(
             credentials.password,
             user.password
@@ -81,7 +95,7 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
-          // 4. 인증 성공 - 사용자 정보 반환
+          // 5. 인증 성공 - 사용자 정보 반환
           console.log("[NextAuth] Authentication successful:", {
             userId: user.id,
             email: user.email,
@@ -395,6 +409,16 @@ export const authOptions: NextAuthOptions = {
             console.log(
               `[NextAuth signIn]    Profile ${isProfileComplete ? "COMPLETE" : "INCOMPLETE - needs additional info"}`
             );
+
+            // 신규 사용자 기본 설정 생성 (기본 디바이스, Preset 등)
+            try {
+              const { createDefaultUserSetup } = await import("@/lib/auth/createDefaultUserSetup");
+              await createDefaultUserSetup(newUser.id);
+              console.log(`[NextAuth signIn] ✅ 기본 설정 생성 완료: User ID ${newUser.id}`);
+            } catch (setupError) {
+              console.error(`[NextAuth signIn] ⚠️ 기본 설정 생성 실패:`, setupError);
+              // 기본 설정 생성 실패해도 로그인은 진행
+            }
 
             // user.id를 DB의 ID로 설정
             user.id = String(newUser.id);

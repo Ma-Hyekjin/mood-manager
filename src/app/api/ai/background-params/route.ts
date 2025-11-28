@@ -6,11 +6,12 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth, checkMockMode } from "@/lib/auth/session";
 import { prepareLLMInput } from "@/lib/llm/prepareLLMInput";
-import { generatePrompt } from "@/lib/llm/generatePrompt";
 import { generateOptimizedPrompt } from "@/lib/llm/optimizePrompt";
 import { validateAndNormalizeResponse, type BackgroundParamsResponse } from "@/lib/llm/validateResponse";
 import { getCachedResponse, setCachedResponse } from "@/lib/cache/llmCache";
+import { getMockPreprocessingData, getMockMoodStream } from "@/lib/mock/mockData";
 import OpenAI from "openai";
 
 /**
@@ -23,24 +24,74 @@ import OpenAI from "openai";
  */
 export async function POST(request: NextRequest) {
   try {
+    // 세션 확인 (인증 필요)
+    const sessionOrError = await requireAuth();
+    if (sessionOrError instanceof NextResponse) {
+      return sessionOrError;
+    }
+    const session = sessionOrError;
+    
+    // 관리자 모드 확인 (데이터는 목업이지만 LLM은 실제 호출)
+    const isAdminMode = checkMockMode(session);
+    if (isAdminMode) {
+      console.log("[LLM API] 관리자 모드: 데이터는 목업이지만 LLM은 실제 호출");
+    }
+
     const body = await request.json();
     const mode = (body.mode || "stream") as "stream" | "scent" | "music";
     const forceFresh = body.forceFresh === true;
 
     // ------------------------------
     // 1) 공통: 전처리 / 무드스트림 데이터 조회
+    // 관리자 모드여도 목업 데이터를 가져와서 LLM에 실제로 전달
     // ------------------------------
-    const [preprocessedRes, moodStreamRes] = await Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/preprocessing`),
-      fetch(`${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/moods/current`),
-    ]);
+    
+    // 관리자 모드인 경우 목업 데이터 직접 사용 (fetch 대신)
+    let preprocessed, moodStream;
+    
+    if (isAdminMode) {
+      console.log("[LLM API] 관리자 모드: 목업 데이터 직접 사용");
+      preprocessed = getMockPreprocessingData();
+      const mockMoodStream = getMockMoodStream();
+      moodStream = {
+        currentMood: mockMoodStream.currentMood,
+        moodStream: mockMoodStream.segments,
+        userDataCount: mockMoodStream.userDataCount,
+      };
+    } else {
+      // 일반 모드: API 호출 (서버 사이드에서 쿠키 전달)
+      const requestHeaders = new Headers();
+      const cookies = request.headers.get("cookie");
+      if (cookies) {
+        requestHeaders.set("cookie", cookies);
+      }
+      
+      const [preprocessedRes, moodStreamRes] = await Promise.all([
+        fetch(`${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/preprocessing`, {
+          headers: requestHeaders,
+          credentials: "include",
+        }),
+        fetch(`${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/moods/current`, {
+          headers: requestHeaders,
+          credentials: "include",
+        }),
+      ]);
 
-    if (!preprocessedRes.ok || !moodStreamRes.ok) {
-      throw new Error("Failed to fetch data");
+      if (!preprocessedRes.ok || !moodStreamRes.ok) {
+        // 에러 발생 시 목업 데이터로 대체
+        console.warn("[LLM API] API 호출 실패, 목업 데이터 사용");
+        preprocessed = getMockPreprocessingData();
+        const mockMoodStream = getMockMoodStream();
+        moodStream = {
+          currentMood: mockMoodStream.currentMood,
+          moodStream: mockMoodStream.segments,
+          userDataCount: mockMoodStream.userDataCount,
+        };
+      } else {
+        preprocessed = await preprocessedRes.json();
+        moodStream = await moodStreamRes.json();
+      }
     }
-
-    const preprocessed = await preprocessedRes.json();
-    const moodStream = await moodStreamRes.json();
 
     // ------------------------------
     // 2) mode 별 분기
@@ -83,14 +134,15 @@ export async function POST(request: NextRequest) {
       );
 
       // 캐시 확인 (비용 절감)
+      // "stream" 모드에서는 segmentIndex를 포함하지 않음
       const cacheKey = {
-        mode,
         moodName: llmInput.moodName,
         musicGenre: llmInput.musicGenre,
         scentType: llmInput.scentType,
         timeOfDay: llmInput.timeOfDay || new Date().getHours(),
         season: llmInput.season || "Winter",
         stressIndex: preprocessed.recent_stress_index,
+        segmentIndex: undefined, // stream 모드에서는 undefined
       };
 
       // 대시보드에서 강제 새로고침(forceFresh) 요청이 아닌 경우에만 캐시 사용
@@ -116,21 +168,29 @@ export async function POST(request: NextRequest) {
 
       const openai = new OpenAI({ apiKey });
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: "JSON만 응답" },
-          { role: "user", content: prompt },
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.7,
-        max_tokens: 500,
-      });
+      try {
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: "JSON만 응답" },
+            { role: "user", content: prompt },
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.7,
+          max_tokens: 500,
+        });
 
-      const rawResponse = JSON.parse(completion.choices[0].message.content || "{}");
-      const validatedResponse = validateAndNormalizeResponse(rawResponse);
-      setCachedResponse(cacheKey, validatedResponse);
-      return NextResponse.json({ ...validatedResponse, source: "openai" });
+        const rawResponse = JSON.parse(completion.choices[0].message.content || "{}");
+        const validatedResponse = validateAndNormalizeResponse(rawResponse);
+        setCachedResponse(cacheKey, validatedResponse);
+        return NextResponse.json({ ...validatedResponse, source: "openai" });
+      } catch (openaiError) {
+        console.error("[LLM API] OpenAI API 호출 실패:", openaiError);
+        // OpenAI API 실패 시 목업 응답 반환
+        const mockResponse = { ...getMockResponse(), source: "mock-openai-error" as const };
+        setCachedResponse(cacheKey, mockResponse);
+        return NextResponse.json(mockResponse);
+      }
     }
 
     // (B) 향 전용: 현재 세그먼트의 향 / 아이콘만 재추천
@@ -168,14 +228,23 @@ export async function POST(request: NextRequest) {
         body.userPreferences
       );
 
+      // "scent" 모드: 현재 세그먼트 인덱스 포함
+      // body에서 segmentIndex를 직접 받거나, moodStream에서 찾기
+      const segmentIndexFromBody = body.segmentIndex;
+      const currentSegmentIndex = segmentIndexFromBody !== undefined 
+        ? segmentIndexFromBody 
+        : (moodStream.moodStream?.findIndex((s: { timestamp: number; duration: number }) => 
+            s.timestamp === segment.timestamp && 
+            s.duration === segment.duration
+          ) ?? -1);
       const cacheKey = {
-        mode,
         moodName: llmInput.moodName,
         musicGenre: llmInput.musicGenre,
         scentType: llmInput.scentType,
         timeOfDay: llmInput.timeOfDay || new Date().getHours(),
         season: llmInput.season || "Winter",
         stressIndex: preprocessed.recent_stress_index,
+        segmentIndex: currentSegmentIndex >= 0 ? currentSegmentIndex : undefined,
       };
 
       const cachedResponse = getCachedResponse(cacheKey);
@@ -241,13 +310,27 @@ export async function POST(request: NextRequest) {
       });
 
       const raw = JSON.parse(completion.choices[0].message.content || "{}");
-      const result = {
-        scentType: raw.scentType || llmInput.scentType,
+      
+      // 기존 세그먼트 값으로 완전한 BackgroundParamsResponse 구성
+      const result: BackgroundParamsResponse = {
+        moodAlias: segment.moodName || segment.mood?.name || "Calm Breeze",
+        musicSelection: segment.music?.title || segment.musicTitle || "Ambient Meditation",
+        moodColor: segment.lighting?.color || "#E6F3FF",
+        lighting: {
+          brightness: segment.lighting?.brightness || 50,
+          temperature: segment.lighting?.temperature || 4000,
+        },
         backgroundIcon: raw.backgroundIcon || { name: "FaLeaf", category: "nature" },
-        source: "openai" as const,
+        backgroundWind: segment.backgroundWind || {
+          direction: 180,
+          speed: 5,
+        },
+        animationSpeed: segment.animationSpeed || 5,
+        iconOpacity: segment.iconOpacity || 0.7,
       };
+      
       setCachedResponse(cacheKey, result);
-      return NextResponse.json(result);
+      return NextResponse.json({ ...result, source: "openai" });
     }
 
     // (C) 음악 전용: 현재 세그먼트의 음악 / 풍향·풍속만 재추천
@@ -285,14 +368,23 @@ export async function POST(request: NextRequest) {
         body.userPreferences
       );
 
+      // "scent" 모드: 현재 세그먼트 인덱스 포함
+      // body에서 segmentIndex를 직접 받거나, moodStream에서 찾기
+      const segmentIndexFromBody = body.segmentIndex;
+      const currentSegmentIndex = segmentIndexFromBody !== undefined 
+        ? segmentIndexFromBody 
+        : (moodStream.moodStream?.findIndex((s: { timestamp: number; duration: number }) => 
+            s.timestamp === segment.timestamp && 
+            s.duration === segment.duration
+          ) ?? -1);
       const cacheKey = {
-        mode,
         moodName: llmInput.moodName,
         musicGenre: llmInput.musicGenre,
         scentType: llmInput.scentType,
         timeOfDay: llmInput.timeOfDay || new Date().getHours(),
         season: llmInput.season || "Winter",
         stressIndex: preprocessed.recent_stress_index,
+        segmentIndex: currentSegmentIndex >= 0 ? currentSegmentIndex : undefined,
       };
 
       const cachedResponse = getCachedResponse(cacheKey);
@@ -303,13 +395,25 @@ export async function POST(request: NextRequest) {
       const apiKey = process.env.OPENAI_API_KEY;
       if (!apiKey) {
         console.warn("OPENAI_API_KEY not found, returning minimal mock for music");
-        const mock = {
-          musicSelection: llmInput.moodName,
+        const segment = body.segment;
+        const mock: BackgroundParamsResponse = {
+          moodAlias: segment?.moodName || segment?.mood?.name || "Calm Breeze",
+          musicSelection: segment?.music?.title || segment?.musicTitle || llmInput.moodName,
+          moodColor: segment?.lighting?.color || "#E6F3FF",
+          lighting: {
+            brightness: segment?.lighting?.brightness || 50,
+            temperature: segment?.lighting?.temperature || 4000,
+          },
+          backgroundIcon: segment?.backgroundIcon || {
+            name: "FaMusic",
+            category: "object",
+          },
           backgroundWind: { direction: 180, speed: 3 },
-          source: "mock-no-key" as const,
+          animationSpeed: segment?.animationSpeed || 5,
+          iconOpacity: segment?.iconOpacity || 0.7,
         };
         setCachedResponse(cacheKey, mock);
-        return NextResponse.json(mock);
+        return NextResponse.json({ ...mock, source: "mock-no-key" });
       }
 
       const openai = new OpenAI({ apiKey });
@@ -321,7 +425,7 @@ export async function POST(request: NextRequest) {
 
       [무드]: ${llmInput.moodName}
       [음악 장르]: ${llmInput.musicGenre}
-      [현재 곡]: ${llmInput.musicTitle || ""}
+      [현재 곡]: ${segment.music?.title || segment.musicTitle || ""}
       [스트레스]: 평균 ${preprocessed.average_stress_index}, 최근 ${preprocessed.recent_stress_index}
 
       아래 JSON 형식으로만 응답하세요.
@@ -346,13 +450,27 @@ export async function POST(request: NextRequest) {
       });
 
       const raw = JSON.parse(completion.choices[0].message.content || "{}");
-      const result = {
-        musicSelection: raw.musicSelection || llmInput.moodName,
+      
+      // 기존 세그먼트 값으로 완전한 BackgroundParamsResponse 구성
+      const result: BackgroundParamsResponse = {
+        moodAlias: segment.moodName || segment.mood?.name || "Calm Breeze",
+        musicSelection: raw.musicSelection || segment.music?.title || segment.musicTitle || llmInput.moodName,
+        moodColor: segment.lighting?.color || "#E6F3FF",
+        lighting: {
+          brightness: segment.lighting?.brightness || 50,
+          temperature: segment.lighting?.temperature || 4000,
+        },
+        backgroundIcon: segment.backgroundIcon || {
+          name: "FaMusic",
+          category: "object",
+        },
         backgroundWind: raw.backgroundWind || { direction: 180, speed: 3 },
-        source: "openai" as const,
+        animationSpeed: segment.animationSpeed || 5,
+        iconOpacity: segment.iconOpacity || 0.7,
       };
+      
       setCachedResponse(cacheKey, result);
-      return NextResponse.json(result);
+      return NextResponse.json({ ...result, source: "openai" });
     }
 
     // 방어 코드 (이곳에 도달하지 않아야 함)
@@ -361,19 +479,14 @@ export async function POST(request: NextRequest) {
     console.error("Background params generation error:", error);
     
     // 에러 발생 시 목업 응답 반환 (서비스 중단 방지)
-    try {
-      return NextResponse.json(getMockResponse());
-    } catch (fallbackError) {
-      return NextResponse.json(
-        { error: "Failed to generate background parameters" },
-        { status: 500 }
-      );
-    }
+    return NextResponse.json(getMockResponse());
   }
 }
 
 /**
- * 목업 응답 (OpenAI API 실패 시 fallback)
+ * [MOCK] 목업 응답 (OpenAI API 실패 시 fallback)
+ * UI FLOW 확인을 위해 보존
+ * TODO: DB 연결 실패 시 자동으로 이 함수 호출하도록 개선 가능
  */
 function getMockResponse() {
   return {
@@ -381,7 +494,6 @@ function getMockResponse() {
     musicSelection: "Ambient Rain Meditation",
     moodColor: "#6B8E9F",
     lighting: {
-      rgb: [107, 142, 159],
       brightness: 50,
       temperature: 4000,
     },
@@ -399,6 +511,7 @@ function getMockResponse() {
     iconSize: 50,
     particleEffect: false,
     gradientColors: ["#6B8E9F", "#87CEEB"],
+    source: "mock" as const,
   };
 }
 

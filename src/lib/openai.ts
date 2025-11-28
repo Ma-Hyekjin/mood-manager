@@ -56,8 +56,9 @@ export async function inferMoodName(moodAttributes: {
   };
   moodCategory?: "positive" | "neutral" | "negative"; // 감정 카테고리 (선택사항)
 }): Promise<string> {
-  // Few-shot 프롬프트 구성
-  const fewShotExamples = `
+  // Few-shot 프롬프트 구성 (향후 사용 예정)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _fewShotExamples = `
 다음은 무드 속성(음악, 조명색, 향, 주기)을 기반으로 무드 이름을 생성하는 예시입니다:
 
 예시 1:

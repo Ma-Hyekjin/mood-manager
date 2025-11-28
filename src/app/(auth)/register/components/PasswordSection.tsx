@@ -26,8 +26,8 @@ export default function PasswordSection({
   onShowPasswordToggle,
   onErrorClear,
   onEnterKey,
-  calculatePasswordStrength: _calculatePasswordStrength,
-  confirmPassword: _confirmPassword,
+  calculatePasswordStrength: _calculatePasswordStrength, // eslint-disable-line @typescript-eslint/no-unused-vars
+  confirmPassword: _confirmPassword, // eslint-disable-line @typescript-eslint/no-unused-vars
 }: PasswordSectionProps) {
   return (
     <div className="flex flex-col space-y-2">

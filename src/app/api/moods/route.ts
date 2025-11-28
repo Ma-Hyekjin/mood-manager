@@ -13,7 +13,7 @@ import { NextRequest, NextResponse } from "next/server";
  */
 
 // 빈 export로 모듈로 인식되도록 함 (실제로는 사용되지 않음)
-export async function GET(_request: NextRequest) {
+export async function GET() {
   return NextResponse.json(
     { message: "This endpoint is not used. See /api/moods/current" },
     { status: 404 }

@@ -280,7 +280,6 @@ export default function ScentBackground({
   const particlesRef = useRef<ScentParticle[]>([]);
   const [particleCount, setParticleCount] = useState(0);
   const [currentBgColor, setCurrentBgColor] = useState<string>("");
-  const [currentParticleColor, setCurrentParticleColor] = useState<string>(scentColor);
 
   const style = SCENT_ANIMATION_STYLES[scentType];
 
@@ -294,14 +293,8 @@ export default function ScentBackground({
     }
     setCurrentBgColor(bg);
 
-    // 파티클 컬러는 대시보드(무드) 컬러와 동일하게 사용해서
-    // 카드와 배경 아이콘의 색이 일관되게 보이도록 한다.
-    if (backgroundColor) {
-      setCurrentParticleColor(backgroundColor);
-    } else {
-      setCurrentParticleColor(scentColor);
-    }
-  }, [backgroundColor, scentColor, style.backgroundColor]);
+    // 배경 색상 전환 (파티클 컬러는 애니메이션 루프에서 직접 backgroundColor 사용)
+  }, [backgroundColor, style.backgroundColor]);
 
   // 파티클 수 계산 (향 레벨에 따라)
   useEffect(() => {
@@ -372,6 +365,9 @@ export default function ScentBackground({
       const sizeRange = style.size;
       const speedRange = style.speed;
 
+      // 현재 파티클 컬러 계산 (무드 컬러 우선 사용)
+      const particleColor = backgroundColor || scentColor;
+
       // 캔버스 클리어 (LLM 추천 배경 색상 또는 기본 색상)
       ctx.fillStyle = currentBgColor || style.backgroundColor;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -436,62 +432,62 @@ export default function ScentBackground({
         ctx.rotate((particle.rotation * Math.PI) / 180);
         ctx.globalAlpha = (particle.opacity * particle.life) * (iconOpacity || 0.7); // LLM iconOpacity 반영
 
-        // 향 타입별 모양 그리기 (LLM 색상 사용)
-        ctx.fillStyle = currentParticleColor || scentColor;
-        ctx.strokeStyle = currentParticleColor || scentColor;
+        // 향 타입별 모양 그리기 (무드 컬러 직접 사용)
+        ctx.fillStyle = particleColor;
+        ctx.strokeStyle = particleColor;
         ctx.lineWidth = 1;
 
         switch (scentType) {
           case "Floral":
             // 꽃잎 모양 (부드러운 곡선)
-            drawPetal(ctx, particle.size, currentParticleColor || scentColor);
+            drawPetal(ctx, particle.size, particleColor);
             break;
           case "Marine":
             // 물방울 모양 (원형 + 하이라이트)
-            drawWaterDrop(ctx, particle.size, currentParticleColor || scentColor);
+            drawWaterDrop(ctx, particle.size, particleColor);
             break;
           case "Citrus":
             // 작은 원형 입자
-            drawCircle(ctx, particle.size, currentParticleColor || scentColor);
+            drawCircle(ctx, particle.size, particleColor);
             break;
           case "Woody":
             // 나뭇잎 모양 (타원형)
-            drawLeaf(ctx, particle.size, currentParticleColor || scentColor);
+            drawLeaf(ctx, particle.size, particleColor);
             break;
           case "Musk":
             // 구름 모양 (부드러운 원형)
-            drawCloud(ctx, particle.size, currentParticleColor || scentColor);
+            drawCloud(ctx, particle.size, particleColor);
             break;
           case "Aromatic":
             // 허브 잎 모양
-            drawHerbLeaf(ctx, particle.size, currentParticleColor || scentColor);
+            drawHerbLeaf(ctx, particle.size, particleColor);
             break;
           case "Green":
             // 잎 모양
-            drawLeaf(ctx, particle.size, currentParticleColor || scentColor);
+            drawLeaf(ctx, particle.size, particleColor);
             break;
           case "Spicy":
             // 작은 입자 (빠르게)
-            drawParticle(ctx, particle.size, currentParticleColor || scentColor);
+            drawParticle(ctx, particle.size, particleColor);
             break;
           case "Honey":
             // 꿀 방울 (타원형)
-            drawHoneyDrop(ctx, particle.size, currentParticleColor || scentColor);
+            drawHoneyDrop(ctx, particle.size, particleColor);
             break;
           case "Dry":
             // 먼지 입자
-            drawDust(ctx, particle.size, currentParticleColor || scentColor);
+            drawDust(ctx, particle.size, particleColor);
             break;
           case "Leathery":
             // 작은 조각
-            drawFragment(ctx, particle.size, currentParticleColor || scentColor);
+            drawFragment(ctx, particle.size, particleColor);
             break;
           case "Powdery":
             // 파우더 입자 (큰 원형)
-            drawPowder(ctx, particle.size, currentParticleColor || scentColor);
+            drawPowder(ctx, particle.size, particleColor);
             break;
           default:
-            drawCircle(ctx, particle.size, currentParticleColor || scentColor);
+            drawCircle(ctx, particle.size, particleColor);
         }
 
         ctx.restore();
@@ -508,7 +504,7 @@ export default function ScentBackground({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [particleCount, scentType, scentColor, style, backgroundWind, animationSpeed, iconOpacity, currentBgColor, currentParticleColor]);
+  }, [particleCount, scentType, scentColor, backgroundColor, style, backgroundWind, animationSpeed, iconOpacity, currentBgColor]);
 
   return (
     <div

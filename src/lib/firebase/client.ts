@@ -16,31 +16,41 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
-// 환경 변수 검증
-function getRequiredEnv(key: string): string {
-  const value = process.env[key];
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${key}`);
+// Firebase 앱 인스턴스 (지연 초기화)
+let appInstance: ReturnType<typeof initializeApp> | null = null;
+let dbInstance: ReturnType<typeof getFirestore> | null = null;
+
+// Firebase 초기화 함수 (지연 초기화)
+function initializeFirebase() {
+  if (appInstance) {
+    return { app: appInstance, db: dbInstance! };
   }
-  return value;
+
+  // 환경 변수 확인 (없으면 기본값 사용)
+  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "placeholder-api-key";
+  const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "placeholder-auth-domain";
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "placeholder-project-id";
+  const appId = process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "placeholder-app-id";
+
+  // 환경 변수 기반 Firebase 설정
+  const firebaseConfig = {
+    apiKey,
+    authDomain,
+    projectId,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId,
+    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  };
+
+  // firebase 앱 중복 실행 방지
+  appInstance = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+  dbInstance = getFirestore(appInstance);
+
+  return { app: appInstance, db: dbInstance };
 }
 
-// 환경 변수 기반 Firebase 설정
-const firebaseConfig = {
-  apiKey: getRequiredEnv("NEXT_PUBLIC_FIREBASE_API_KEY"),
-  authDomain: getRequiredEnv("NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN"),
-  projectId: getRequiredEnv("NEXT_PUBLIC_FIREBASE_PROJECT_ID"),
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: getRequiredEnv("NEXT_PUBLIC_FIREBASE_APP_ID"),
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-};
-
-// firebase 앱 중복 실행 방지
-export const app =
-  getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-
-// 클라이언트 Firestore 인스턴스
-// 참고: gRPC 연결 문제는 주로 네트워크 환경이나 서버리스 환경에서 발생합니다.
-// 리스너에서 자동 재연결 로직으로 처리합니다.
-export const db = getFirestore(app);
+// 지연 초기화된 Firebase 인스턴스 export
+// 실제 사용 시점에 초기화됨
+export const app = initializeFirebase().app;
+export const db = initializeFirebase().db;

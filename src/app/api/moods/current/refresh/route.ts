@@ -10,22 +10,44 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-// import { getServerSession } from "next-auth";
+import { requireAuth, checkMockMode } from "@/lib/auth/session";
 import { MOODS } from "@/types/mood";
+import { hexToRgb } from "@/lib/utils";
+import { getMockMoodStream } from "@/lib/mock/mockData";
 
 /**
- * [MOCK] 목업 모드
- * TODO: 시계열 + 마르코프 체인으로 실제 예측 구현
+ * PUT /api/moods/current/refresh
+ * 
+ * 무드스트림 재생성
  */
-export async function PUT(_request: NextRequest) {
-  // TODO: 세션 확인
-  // const session = await getServerSession();
-  // if (!session) {
-  //   return NextResponse.json(
-  //     { error: "UNAUTHORIZED", message: "Authentication required" },
-  //     { status: 401 }
-  //   );
-  // }
+export async function PUT() {
+  try {
+    // 1. 세션 검증
+    const sessionOrError = await requireAuth();
+    if (sessionOrError instanceof NextResponse) {
+      return sessionOrError;
+    }
+    const session = sessionOrError;
+
+  // 2. 목업 모드 확인 (관리자 계정)
+  if (checkMockMode(session)) {
+    console.log("[PUT /api/moods/current/refresh] 목업 모드: 관리자 계정");
+    try {
+      const mockData = getMockMoodStream();
+      return NextResponse.json({
+        currentMood: mockData.currentMood,
+        moodStream: mockData.segments,
+        userDataCount: mockData.userDataCount,
+        streamId: `stream-${Date.now()}`, // 새로운 스트림 ID
+      });
+    } catch (error) {
+      console.error("[PUT /api/moods/current/refresh] 목업 데이터 생성 실패:", error);
+      return NextResponse.json(
+        { error: "INTERNAL_ERROR", message: "무드스트림 재생성 실패" },
+        { status: 500 }
+      );
+    }
+  }
 
   // TODO: 시계열 + 마르코프 체인으로 새로운 무드스트림 생성
   // const userId = session.user.id;
@@ -37,7 +59,7 @@ export async function PUT(_request: NextRequest) {
   // 30분 스트림 생성 (음악 분절 주기: 3분)
   const moodStream = [];
   const musicSegmentDuration = 3 * 60 * 1000; // 3분
-  const totalDuration = 30 * 60 * 1000; // 30분
+  const now = Date.now();
   
   for (let i = 0; i < 10; i++) {
     // 마르코프 체인 시뮬레이션: 같은 클러스터 내에서 무드 선택
@@ -47,24 +69,28 @@ export async function PUT(_request: NextRequest) {
       return false;
     });
     
-    const selectedMood = clusterMoods[Math.floor(Math.random() * clusterMoods.length)];
+    const selectedMood = clusterMoods[Math.floor(Math.random() * clusterMoods.length)] || MOODS[0];
     
     moodStream.push({
-      timestamp: Date.now() + i * musicSegmentDuration,
-      mood: selectedMood,
-      music: {
-        genre: "newage", // TODO: 실제 장르 매핑
-        title: selectedMood.song.title,
-      },
-      scent: {
-        type: selectedMood.scent.type,
-        name: selectedMood.scent.name,
-      },
-      lighting: {
-        color: selectedMood.color,
-        rgb: hexToRgb(selectedMood.color),
-      },
+      timestamp: now + i * musicSegmentDuration,
       duration: musicSegmentDuration,
+      mood: {
+        id: selectedMood.id,
+        name: selectedMood.name,
+        color: selectedMood.color,
+        music: {
+          genre: "newage",
+          title: selectedMood.song.title,
+        },
+        scent: {
+          type: selectedMood.scent.type,
+          name: selectedMood.scent.name,
+        },
+        lighting: {
+          color: selectedMood.color,
+          rgb: hexToRgb(selectedMood.color),
+        },
+      },
     });
   }
 
@@ -72,7 +98,7 @@ export async function PUT(_request: NextRequest) {
     currentMood: {
       id: currentMood.id,
       name: currentMood.name,
-      cluster: "0", // '-', '0', '+'
+      color: currentMood.color,
       music: {
         genre: "newage",
         title: currentMood.song.title,
@@ -90,19 +116,24 @@ export async function PUT(_request: NextRequest) {
     userDataCount: 45, // TODO: 실제 사용자 데이터 개수
     streamId: `stream-${Date.now()}`, // 새로운 스트림 ID
   });
-}
-
-/**
- * HEX 색상을 RGB로 변환
- */
-function hexToRgb(hex: string): [number, number, number] {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result
-    ? [
-        parseInt(result[1], 16),
-        parseInt(result[2], 16),
-        parseInt(result[3], 16),
-      ]
-    : [230, 243, 255]; // 기본값
+  } catch (error) {
+    console.error("[PUT /api/moods/current/refresh] 무드스트림 재생성 실패:", error);
+    // 에러 발생 시 목업 데이터로 대체
+    try {
+      const mockData = getMockMoodStream();
+      return NextResponse.json({
+        currentMood: mockData.currentMood,
+        moodStream: mockData.segments,
+        userDataCount: mockData.userDataCount,
+        streamId: `stream-${Date.now()}`,
+      });
+    } catch (mockError) {
+      console.error("[PUT /api/moods/current/refresh] 목업 데이터 생성도 실패:", mockError);
+      return NextResponse.json(
+        { error: "INTERNAL_ERROR", message: "무드스트림 재생성 실패" },
+        { status: 500 }
+      );
+    }
+  }
 }
 

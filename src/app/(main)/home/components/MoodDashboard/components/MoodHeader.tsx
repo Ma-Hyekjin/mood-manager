@@ -28,9 +28,7 @@ export default function MoodHeader({
   onRefresh,
   llmSource,
   onPreferenceClick,
-  preferenceCount = 0,
   maxReached = false,
-  onDoubleClick,
 }: MoodHeaderProps) {
   const [showHeartAnimation, setShowHeartAnimation] = useState(false);
   const [heartPosition, setHeartPosition] = useState<{ x: number; y: number } | null>(null);

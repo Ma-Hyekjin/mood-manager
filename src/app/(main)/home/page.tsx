@@ -13,11 +13,14 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import TopNav from "@/components/navigation/TopNav";
 import BottomNav from "@/components/navigation/BottomNav";
 import HomeContent from "./components/HomeContent";
 import DeviceAddModal from "./components/Device/DeviceAddModal";
+import DeviceDeleteModal from "./components/Device/DeviceDeleteModal";
 import SurveyOverlay from "./components/SurveyOverlay/SurveyOverlay";
 import type { Device } from "@/types/device";
 import { MOODS } from "@/types/mood";
@@ -27,8 +30,23 @@ import { useSurvey } from "@/hooks/useSurvey";
 import type { BackgroundParams } from "@/hooks/useBackgroundParams";
 
 export default function HomePage() {
+  const router = useRouter();
+  const { status } = useSession();
+
+  // 세션 체크: 로그인되지 않은 경우 로그인 페이지로 리다이렉트
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace("/login");
+      return;
+    }
+    // 로딩 중이거나 인증되지 않은 경우 렌더링하지 않음
+    if (status === "loading") {
+      return;
+    }
+  }, [status, router]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [deviceToDelete, setDeviceToDelete] = useState<Device | null>(null);
   const [backgroundParams, setBackgroundParams] = useState<BackgroundParams | null>(null);
 
   // 초기 무드 설정
@@ -39,6 +57,15 @@ export default function HomePage() {
   const { currentMood, setCurrentMood, handleScentChange, handleSongChange } =
     useMood(initialMood, setDevices);
   const { showSurvey, handleSurveyComplete, handleSurveySkip } = useSurvey();
+
+  // 로딩 중이거나 인증되지 않은 경우 로딩 화면 표시
+  if (status === "loading" || status === "unauthenticated") {
+    return (
+      <div className="flex flex-col h-screen overflow-hidden relative items-center justify-center">
+        <p className="text-gray-500">로딩 중...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen overflow-hidden relative">
@@ -62,6 +89,7 @@ export default function HomePage() {
             expandedId,
             setExpandedId,
             onOpenAddModal: () => setShowAddModal(true),
+            onDeleteRequest: (device: Device) => setDeviceToDelete(device),
           }}
           backgroundState={{
             params: backgroundParams,
@@ -82,6 +110,19 @@ export default function HomePage() {
             addDevice(type, name);
             setShowAddModal(false);
           }}
+        />
+      )}
+
+      {deviceToDelete && (
+        <DeviceDeleteModal
+          device={deviceToDelete}
+          onConfirm={() => {
+            const updatedDevices = devices.filter((d) => d.id !== deviceToDelete.id);
+            setDevices(updatedDevices);
+            setDeviceToDelete(null);
+            setExpandedId(null); // 확장된 카드 닫기
+          }}
+          onCancel={() => setDeviceToDelete(null)}
         />
       )}
 

@@ -3,8 +3,7 @@
 // ======================================================
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requireAuth, checkMockMode } from "@/lib/auth/session";
 
 /**
  * POST /api/moods/saved
@@ -29,15 +28,12 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+    const sessionOrError = await requireAuth();
+    if (sessionOrError instanceof NextResponse) {
+      return sessionOrError;
     }
+    const session = sessionOrError;
 
-    const userId = session.user.id;
     const body = await request.json();
     const { moodId, moodName, moodColor, music, scent, preferenceCount = 0 } = body;
 
@@ -48,6 +44,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 목업 모드 확인 (관리자 계정)
+    if (checkMockMode(session)) {
+      console.log("[POST /api/moods/saved] 목업 모드: 관리자 계정");
+      // 관리자 모드에서는 요청한 데이터를 그대로 반환
+      const savedMood = {
+        id: `saved-${Date.now()}`,
+        moodId,
+        moodName,
+        moodColor,
+        music,
+        scent,
+        preferenceCount,
+        savedAt: Date.now(),
+      };
+      return NextResponse.json({
+        success: true,
+        savedMood,
+      });
+    }
+
     // TODO: 실제 DB 연동 시 Firestore 사용
     // Firestore 구조:
     // users/{userId}/savedMoods/{savedMoodId}
@@ -56,7 +72,7 @@ export async function POST(request: NextRequest) {
     //   savedAt: timestamp, updatedAt: timestamp
     // }
 
-    // [MOCK] 목업 응답
+    // [MOCK] 목업 응답 (일반 모드)
     const savedMood = {
       id: `saved-${Date.now()}`,
       moodId,
@@ -91,23 +107,28 @@ export async function POST(request: NextRequest) {
  *   savedMoods: Array<{ ... }>;
  * }
  */
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+    const sessionOrError = await requireAuth();
+    if (sessionOrError instanceof NextResponse) {
+      return sessionOrError;
+    }
+    const session = sessionOrError;
+
+    // 목업 모드 확인 (관리자 계정)
+    if (checkMockMode(session)) {
+      console.log("[GET /api/moods/saved] 목업 모드: 관리자 계정");
+      // 관리자 모드에서는 빈 배열 반환 (클라이언트에서 localStorage로 관리)
+      return NextResponse.json({
+        savedMoods: [],
+      });
     }
 
-    const userId = session.user.id;
-
     // TODO: 실제 DB 연동 시 Firestore에서 조회
-    // [MOCK] 목업 응답
+    // [MOCK] 목업 응답 (일반 모드) - 샘플 11개 무드셋
     const savedMoods = [
       {
-        id: "saved-1234567890",
+        id: "saved-1",
         moodId: "calm-1",
         moodName: "Calm Breeze",
         moodColor: "#E6F3FF",
@@ -119,11 +140,11 @@ export async function GET(_request: NextRequest) {
           type: "Marine",
           name: "Wave",
         },
-        preferenceCount: 2,
-        savedAt: Date.now() - 86400000, // 1일 전
+        preferenceCount: 0,
+        savedAt: Date.now() - 86400000 * 11,
       },
       {
-        id: "saved-1234567891",
+        id: "saved-2",
         moodId: "focus-1",
         moodName: "Deep Focus",
         moodColor: "#F5F5DC",
@@ -135,8 +156,152 @@ export async function GET(_request: NextRequest) {
           type: "Musk",
           name: "Cloud",
         },
-        preferenceCount: 3,
-        savedAt: Date.now() - 172800000, // 2일 전
+        preferenceCount: 0,
+        savedAt: Date.now() - 86400000 * 10,
+      },
+      {
+        id: "saved-3",
+        moodId: "energy-1",
+        moodName: "Morning Energy",
+        moodColor: "#FFD700",
+        music: {
+          genre: "ambient",
+          title: "Sunrise",
+        },
+        scent: {
+          type: "Citrus",
+          name: "Orange",
+        },
+        preferenceCount: 0,
+        savedAt: Date.now() - 86400000 * 9,
+      },
+      {
+        id: "saved-4",
+        moodId: "relax-1",
+        moodName: "Evening Relax",
+        moodColor: "#9CAF88",
+        music: {
+          genre: "jazz",
+          title: "Soft Evening",
+        },
+        scent: {
+          type: "Aromatic",
+          name: "Herb",
+        },
+        preferenceCount: 0,
+        savedAt: Date.now() - 86400000 * 8,
+      },
+      {
+        id: "saved-5",
+        moodId: "romantic-1",
+        moodName: "Romantic Night",
+        moodColor: "#FF69B4",
+        music: {
+          genre: "piano",
+          title: "Love Song",
+        },
+        scent: {
+          type: "Floral",
+          name: "Rose",
+        },
+        preferenceCount: 0,
+        savedAt: Date.now() - 86400000 * 7,
+      },
+      {
+        id: "saved-6",
+        moodId: "calm-2",
+        moodName: "Calm Breeze",
+        moodColor: "#D4E6F1",
+        music: {
+          genre: "nature",
+          title: "Ocean Waves",
+        },
+        scent: {
+          type: "Marine",
+          name: "Shell",
+        },
+        preferenceCount: 0,
+        savedAt: Date.now() - 86400000 * 6,
+      },
+      {
+        id: "saved-7",
+        moodId: "focus-2",
+        moodName: "Deep Focus",
+        moodColor: "#FFFDD0",
+        music: {
+          genre: "classical",
+          title: "Concentration",
+        },
+        scent: {
+          type: "Musk",
+          name: "Cloud",
+        },
+        preferenceCount: 0,
+        savedAt: Date.now() - 86400000 * 5,
+      },
+      {
+        id: "saved-8",
+        moodId: "energy-2",
+        moodName: "Morning Energy",
+        moodColor: "#FFA500",
+        music: {
+          genre: "electronic",
+          title: "Vitality",
+        },
+        scent: {
+          type: "Citrus",
+          name: "Lemon",
+        },
+        preferenceCount: 0,
+        savedAt: Date.now() - 86400000 * 4,
+      },
+      {
+        id: "saved-9",
+        moodId: "relax-2",
+        moodName: "Evening Relax",
+        moodColor: "#B19CD9",
+        music: {
+          genre: "meditation",
+          title: "Peaceful Night",
+        },
+        scent: {
+          type: "Aromatic",
+          name: "Lavender",
+        },
+        preferenceCount: 0,
+        savedAt: Date.now() - 86400000 * 3,
+      },
+      {
+        id: "saved-10",
+        moodId: "romantic-2",
+        moodName: "Romantic Night",
+        moodColor: "#FF7F50",
+        music: {
+          genre: "piano",
+          title: "Intimate",
+        },
+        scent: {
+          type: "Floral",
+          name: "Rose",
+        },
+        preferenceCount: 0,
+        savedAt: Date.now() - 86400000 * 2,
+      },
+      {
+        id: "saved-11",
+        moodId: "calm-3",
+        moodName: "Calm Breeze",
+        moodColor: "#AED6F1",
+        music: {
+          genre: "nature",
+          title: "Gentle Rain",
+        },
+        scent: {
+          type: "Green",
+          name: "Sprout",
+        },
+        preferenceCount: 0,
+        savedAt: Date.now() - 86400000,
       },
     ];
 

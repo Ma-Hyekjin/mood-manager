@@ -11,10 +11,11 @@
 
 "use client";
 
+import { Suspense } from "react";
 import RegisterForm from "./components/RegisterForm";
 import { useRegisterForm } from "./hooks/useRegisterForm";
 
-export default function RegisterPage() {
+function RegisterFormWrapper() {
   const form = useRegisterForm();
 
   return (
@@ -22,5 +23,18 @@ export default function RegisterPage() {
       <h1 className="text-2xl font-semibold mb-8">Mood Manager</h1>
       <RegisterForm form={form} />
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex flex-col items-center justify-center px-6">
+        <h1 className="text-2xl font-semibold mb-8">Mood Manager</h1>
+        <div className="text-gray-500">Loading...</div>
+      </div>
+    }>
+      <RegisterFormWrapper />
+    </Suspense>
   );
 }

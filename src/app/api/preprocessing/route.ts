@@ -19,6 +19,7 @@ import { startPeriodicListener } from "@/backend/listener/periodicListener";
 import { fetchTodayPeriodicRaw } from "@/backend/jobs/fetchTodayPeriodicRaw";
 import { calcTodaySleepScore } from "@/backend/jobs/calcTodaySleepScore";
 import { fetchWeather } from "@/lib/weather/fetchWeather";
+import { requireAuth, checkMockMode } from "@/lib/auth/session";
 
 // Emotion
 import { fetchDailySignals } from "@/lib/moodSignals/fetchDailySignals";
@@ -30,22 +31,51 @@ if (typeof window === "undefined") {
   startPeriodicListener();
 }
 
-const USER_ID = "testUser"; // TODO: JWT/Session 기반 userId로 변경
-
 // ------------------------------------------------------------
 // GET /api/preprocessing
 // ------------------------------------------------------------
 export async function GET() {
   startPeriodicListener();
 
+  // 세션 확인 및 관리자 모드 체크
+  const sessionOrError = await requireAuth();
+  if (sessionOrError instanceof NextResponse) {
+    // 인증 실패 시 목업 데이터 반환
+    const { getMockPreprocessingData } = await import("@/lib/mock/mockData");
+    return NextResponse.json(getMockPreprocessingData());
+  }
+  const session = sessionOrError;
+
+  // 관리자 모드 확인
+  if (checkMockMode(session)) {
+    console.log("[GET /api/preprocessing] 목업 모드: 관리자 계정");
+    const { getMockPreprocessingData } = await import("@/lib/mock/mockData");
+    return NextResponse.json(getMockPreprocessingData());
+  }
+
+  // 일반 모드: 실제 데이터 조회
+  const USER_ID = session.user.id;
+
   try {
     // ------------------------------------------------------------
     // 1) 오늘 날짜 raw_periodic 데이터 조회
     // ------------------------------------------------------------
-    const todayRawData = await fetchTodayPeriodicRaw(USER_ID);
+    let todayRawData;
+    
+    try {
+      todayRawData = await fetchTodayPeriodicRaw(USER_ID);
+    } catch (error) {
+      console.warn("[preprocessing] Firestore 조회 실패, 목업 데이터 반환:", error);
+      // [MOCK] Firestore 조회 실패 시 목업 데이터 반환
+      const { getMockPreprocessingData } = await import("@/lib/mock/mockData");
+      return NextResponse.json(getMockPreprocessingData());
+    }
 
     if (todayRawData.length === 0) {
-      return new NextResponse(null, { status: 204 });
+      // [MOCK] 데이터가 없을 경우 목업 데이터 반환 (UI FLOW 확인용)
+      console.log("[preprocessing] 데이터 없음, 목업 데이터 반환");
+      const { getMockPreprocessingData } = await import("@/lib/mock/mockData");
+      return NextResponse.json(getMockPreprocessingData());
     }
 
     // ------------------------------------------------------------

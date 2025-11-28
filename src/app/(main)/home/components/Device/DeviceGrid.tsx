@@ -31,6 +31,7 @@ export default function DeviceGrid({
   setDevices,
   openAddModal,
   currentMood,
+  onDeleteRequest,
 }: {
   devices: Device[];
   expandedId: string | null;
@@ -38,6 +39,7 @@ export default function DeviceGrid({
   setDevices: (fn: (prev: Device[]) => Device[]) => void;
   openAddModal: () => void;
   currentMood?: Mood; // 현재 무드 (AddDeviceCard에 전달)
+  onDeleteRequest: (device: Device) => void; // 삭제 요청 콜백
 }) {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -84,7 +86,7 @@ export default function DeviceGrid({
                 device={device}
                 currentMood={currentMood}
                 onClose={() => setExpandedId(null)}
-                onDelete={handlers.handleDelete}
+                onDelete={() => onDeleteRequest(device)}
                 onTogglePower={handlers.handleTogglePower}
                 onUpdateName={handlers.handleUpdateName}
                 onUpdateLightColor={handlers.handleUpdateLightColor}

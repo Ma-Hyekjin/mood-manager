@@ -14,7 +14,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth/session";
+import { requireAuth, checkMockMode } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -38,10 +38,17 @@ export async function DELETE(
     }
     const session = sessionOrError;
 
-    // 2. URL 파라미터 추출
+    // 2. 목업 모드 확인 (관리자 계정)
+    if (checkMockMode(session)) {
+      console.log("[DELETE /api/devices/:deviceId] 목업 모드: 관리자 계정");
+      // 관리자 모드에서는 항상 성공 응답 (실제 삭제는 클라이언트에서 처리)
+      return NextResponse.json({ success: true });
+    }
+
+    // 3. URL 파라미터 추출
     const { deviceId } = await params;
 
-    // 3. 디바이스 존재 여부 및 소유자 확인
+    // 4. 디바이스 존재 여부 및 소유자 확인
     const device = await prisma.device.findUnique({
       where: { id: deviceId },
     });
@@ -63,7 +70,7 @@ export async function DELETE(
       );
     }
 
-    // 4. 디바이스 삭제 (Hard Delete)
+    // 5. 디바이스 삭제 (Hard Delete)
     await prisma.device.delete({
       where: { id: deviceId },
     });

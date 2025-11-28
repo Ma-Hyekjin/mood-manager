@@ -3,8 +3,7 @@
 // ======================================================
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requireAuth } from "@/lib/auth/session";
 
 /**
  * POST /api/moods/preference
@@ -38,15 +37,12 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+    const sessionOrError = await requireAuth();
+    if (sessionOrError instanceof NextResponse) {
+      return sessionOrError;
     }
+    // const session = sessionOrError; // 향후 사용 예정
 
-    const userId = session.user.id;
     const body = await request.json();
     const { moodId, moodName, musicGenre, scentType, moodColor } = body;
 
@@ -140,17 +136,14 @@ export async function POST(request: NextRequest) {
  *   colorPreferences: Record<string, number>; // 컬러별 카운트
  * }
  */
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+    const sessionOrError = await requireAuth();
+    if (sessionOrError instanceof NextResponse) {
+      return sessionOrError;
     }
+    // const session = sessionOrError; // 향후 사용 예정
 
-    const userId = session.user.id;
 
     // TODO: 실제 DB 연동 시 Firestore에서 조회
     // [MOCK] 목업 응답

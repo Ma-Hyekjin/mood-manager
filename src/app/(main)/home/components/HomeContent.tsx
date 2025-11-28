@@ -38,6 +38,7 @@ interface DeviceState {
   expandedId: string | null;
   setExpandedId: (id: string | null) => void;
   onOpenAddModal: () => void;
+  onDeleteRequest: (device: Device) => void; // 삭제 요청 콜백
 }
 
 interface BackgroundState {
@@ -57,10 +58,10 @@ export default function HomeContent({
   backgroundState,
 }: HomeContentProps) {
   const { current: currentMood, onChange: onMoodChange, onScentChange, onSongChange } = moodState;
-  const { devices, setDevices, expandedId, setExpandedId, onOpenAddModal } = deviceState;
+  const { devices, setDevices, expandedId, setExpandedId, onOpenAddModal, onDeleteRequest } = deviceState;
   const onBackgroundParamsChange = backgroundState?.onChange;
   // 무드스트림 관리
-  const { moodStream, refreshMoodStream } = useMoodStream();
+  const { moodStream, isLoading: isLoadingMoodStream } = useMoodStream();
   
   // LLM 배경 파라미터 관리 (새로고침 시에만 호출)
   const [shouldFetchLLM, setShouldFetchLLM] = useState(false);
@@ -79,7 +80,6 @@ export default function HomeContent({
   
   // LLM 결과 및 무드 변경을 디바이스에 반영
   useDeviceSync({
-    devices,
     setDevices,
     backgroundParams,
     currentMood,
@@ -92,10 +92,8 @@ export default function HomeContent({
   );
 
   // 무드 컬러(raw & pastel) - 메모이제이션
-  const { rawMoodColor, pastelMoodColor } = useMemo(() => {
-    const raw = backgroundParams?.moodColor || currentMood.color;
-    const pastel = blendWithWhite(raw, 0.9);
-    return { rawMoodColor: raw, pastelMoodColor: pastel };
+  const rawMoodColor = useMemo(() => {
+    return backgroundParams?.moodColor || currentMood.color;
   }, [backgroundParams?.moodColor, currentMood.color]);
 
   // 새로고침 요청 핸들러 - 메모이제이션
@@ -112,14 +110,24 @@ export default function HomeContent({
     [currentMood, backgroundParams?.moodColor]
   );
   
+  // 무드스트림이 없으면 로딩 표시
+  if (isLoadingMoodStream && !moodStream) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <p className="text-gray-500">무드스트림을 불러오는 중...</p>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* 향 배경 효과 - 백그라운드 레이어 */}
       <ScentBackground
         scentType={currentMood.scent.type}
+        // 파티클 컬러는 무드 컬러(raw)를 직접 사용하여 무드 변경 시 즉시 반영
         // 백그라운드에는 무드컬러의 파스텔톤을 사용하고,
         // 향 타입별 파스텔과 함께 섞여 보이도록 처리
-        scentColor={pastelMoodColor}
+        scentColor={rawMoodColor}
         intensity={currentScentLevel}
         backgroundIcon={backgroundParams?.backgroundIcon}
         backgroundWind={backgroundParams?.backgroundWind}
@@ -150,6 +158,7 @@ export default function HomeContent({
             setDevices={setDevices}
             openAddModal={onOpenAddModal}
             currentMood={deviceGridMood}
+            onDeleteRequest={onDeleteRequest}
           />
         </div>
       </div>

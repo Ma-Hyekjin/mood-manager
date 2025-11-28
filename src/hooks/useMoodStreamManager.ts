@@ -71,7 +71,7 @@ export function useMoodStreamManager() {
       const backgroundParams = await llmResponse.json();
       
       // 3. 세그먼트에 LLM 정보 추가
-      const enrichedSegments: ScheduledMoodSegment[] = segments.map((seg: MoodStreamSegment, index: number) => ({
+      const enrichedSegments: ScheduledMoodSegment[] = segments.map((seg: MoodStreamSegment) => ({
         id: seg.id,
         timestamp: seg.timestamp,
         moodName: seg.moodName,

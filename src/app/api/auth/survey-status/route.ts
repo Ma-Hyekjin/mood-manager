@@ -14,7 +14,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth/session";
+import { requireAuth, checkMockMode } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -26,7 +26,7 @@ import { prisma } from "@/lib/prisma";
  * - 성공: { hasSurvey: boolean }
  * - 실패: { error: "ERROR_CODE", message: "에러 메시지" }
  */
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     // 1. 세션 검증
     const sessionOrError = await requireAuth();
@@ -35,11 +35,25 @@ export async function GET(_request: NextRequest) {
     }
     const session = sessionOrError;
 
-    // 2. 사용자 조회
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { hasSurvey: true },
-    });
+    // 2. 목업 모드 확인 (관리자 계정)
+    if (checkMockMode(session)) {
+      console.log("[GET /api/auth/survey-status] 목업 모드: 관리자 계정");
+      // 목업 모드에서는 항상 설문 미완료로 반환 (설문 페이지로 이동)
+      return NextResponse.json({ hasSurvey: false, mock: true });
+    }
+
+    // 3. 사용자 조회
+    let user;
+    try {
+      user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { hasSurvey: true },
+      });
+    } catch (dbError) {
+      console.error("[GET /api/auth/survey-status] DB 조회 실패, 목업 모드로 처리:", dbError);
+      // DB 조회 실패 시 목업 모드로 처리
+      return NextResponse.json({ hasSurvey: false, mock: true });
+    }
 
     if (!user) {
       return NextResponse.json(
@@ -48,7 +62,7 @@ export async function GET(_request: NextRequest) {
       );
     }
 
-    // 3. 설문 상태 반환
+    // 4. 설문 상태 반환
     return NextResponse.json({ hasSurvey: user.hasSurvey });
   } catch (error) {
     console.error(

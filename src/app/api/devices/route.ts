@@ -16,9 +16,12 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth/session";
+import { requireAuth, checkMockMode } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
+import { getMockDevices } from "@/lib/mock/mockData";
 import { validateRequiredFields } from "@/lib/utils/validation";
+import type { Device } from "@/types/device";
+import { MOODS } from "@/types/mood";
 
 /**
  * GET /api/devices
@@ -29,7 +32,7 @@ import { validateRequiredFields } from "@/lib/utils/validation";
  * - 성공: { devices: Device[] }
  * - 실패: { error: "ERROR_CODE", message: "에러 메시지" }
  */
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     // 1. 세션 검증
     const sessionOrError = await requireAuth();
@@ -38,18 +41,57 @@ export async function GET(_request: NextRequest) {
     }
     const session = sessionOrError;
 
-    // 2. 사용자의 모든 디바이스 조회
-    const devices = await prisma.device.findMany({
-      where: {
-        userId: session.user.id,
-        status: "active", // 활성화된 디바이스만 조회
-      },
-      orderBy: {
-        registeredAt: "desc",
-      },
-    });
+    // 2. 목업 모드 확인 (관리자 계정)
+    if (checkMockMode(session)) {
+      console.log("[GET /api/devices] 목업 모드: 관리자 계정");
+      return NextResponse.json({ devices: getMockDevices() });
+    }
 
-    // 3. 디바이스 데이터 포맷팅
+    // 2. 사용자의 모든 디바이스 조회
+    let devices: Awaited<ReturnType<typeof prisma.device.findMany>> = [];
+    
+    try {
+      devices = await prisma.device.findMany({
+        where: {
+          userId: session.user.id,
+          status: "active", // 활성화된 디바이스만 조회
+        },
+        orderBy: {
+          registeredAt: "desc",
+        },
+      });
+    } catch (dbError) {
+      console.error("[GET /api/devices] DB 조회 실패, 목업 데이터 반환:", dbError);
+      // [MOCK] DB 연결 실패 시 목업 데이터 반환
+      const { getMockDevices } = await import("@/lib/mock/mockData");
+      return NextResponse.json({ devices: getMockDevices() });
+    }
+
+    // 3. 디바이스가 없으면 기본 설정 생성
+    if (devices.length === 0) {
+      try {
+        const { createDefaultUserSetup } = await import("@/lib/auth/createDefaultUserSetup");
+        await createDefaultUserSetup(session.user.id);
+        
+        // 다시 디바이스 조회
+        devices = await prisma.device.findMany({
+          where: {
+            userId: session.user.id,
+            status: "active",
+          },
+          orderBy: {
+            registeredAt: "desc",
+          },
+        });
+      } catch (setupError) {
+        console.error("[GET /api/devices] 기본 설정 생성 실패, 목업 데이터 반환:", setupError);
+        // [MOCK] 기본 설정 생성 실패 시 목업 데이터 반환
+        const { getMockDevices } = await import("@/lib/mock/mockData");
+        return NextResponse.json({ devices: getMockDevices() });
+      }
+    }
+
+    // 4. 디바이스 데이터 포맷팅
     const formattedDevices = devices.map((device) => ({
       id: device.id,
       type: device.type,
@@ -96,6 +138,29 @@ export async function POST(request: NextRequest) {
 
     // 2. 요청 본문 파싱
     const body = await request.json();
+    
+    // 3. 목업 모드 확인 (관리자 계정)
+    if (checkMockMode(session)) {
+      console.log("[POST /api/devices] 목업 모드: 관리자 계정");
+      const { type, name } = body;
+      
+      // 디바이스 타입 검증
+      const validTypes = ["manager", "light", "scent", "speaker"];
+      if (!validTypes.includes(type)) {
+        return NextResponse.json(
+          {
+            error: "INVALID_INPUT",
+            message: "유효하지 않은 디바이스 타입입니다.",
+          },
+          { status: 400 }
+        );
+      }
+      
+      // 목업 디바이스 생성 (임시 ID 생성)
+      const mockDevice = createMockDevice(type, name);
+      return NextResponse.json({ device: mockDevice });
+    }
+    // 4. 필수 필드 검증
     const validation = validateRequiredFields(body, ["type"]);
     if (!validation.valid) {
       return NextResponse.json(
@@ -109,7 +174,7 @@ export async function POST(request: NextRequest) {
 
     const { type, name } = body;
 
-    // 3. 디바이스 타입 검증
+    // 5. 디바이스 타입 검증
     const validTypes = ["manager", "light", "scent", "speaker"];
     if (!validTypes.includes(type)) {
       return NextResponse.json(
@@ -121,7 +186,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. 디바이스 이름 자동 생성 (미제공 시)
+    // 6. 디바이스 이름 자동 생성 (미제공 시)
     let deviceName = name;
     if (!deviceName) {
       const existingDevices = await prisma.device.count({
@@ -140,10 +205,10 @@ export async function POST(request: NextRequest) {
       deviceName = `${typeNames[type]} ${existingDevices + 1}`;
     }
 
-    // 5. 디바이스 기본 설정값
+    // 7. 디바이스 기본 설정값
     const defaultSettings = getDefaultDeviceSettings(type);
 
-    // 6. 디바이스 생성
+    // 8. 디바이스 생성
     const device = await prisma.device.create({
       data: {
         userId: session.user.id,
@@ -162,7 +227,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // 7. 응답 데이터 포맷팅
+    // 9. 응답 데이터 포맷팅
     const formattedDevice = {
       id: device.id,
       type: device.type,
@@ -273,4 +338,74 @@ function formatDeviceOutput(device: {
   }
 
   return output;
+}
+
+/**
+ * 목업 디바이스 생성 (관리자 모드용)
+ */
+function createMockDevice(type: Device["type"], name?: string): Device {
+  const defaultMood = MOODS[0];
+  const timestamp = Date.now();
+  
+  // 디바이스 타입별 기본 설정
+  const baseDevice: Partial<Device> = {
+    id: `mock-${type}-${timestamp}`,
+    type,
+    name: name || `Smart ${type.charAt(0).toUpperCase() + type.slice(1)} ${Math.floor(Math.random() * 1000)}`,
+    battery: Math.floor(Math.random() * 30) + 70, // 70-100%
+    power: true,
+  };
+  
+  switch (type) {
+    case "manager":
+      return {
+        ...baseDevice,
+        type: "manager",
+        name: name || "Mood Manager",
+        output: {
+          brightness: 80,
+          color: defaultMood.color,
+          temperature: 4000,
+          scentType: defaultMood.scent.name,
+          scentLevel: 7,
+          scentInterval: 30,
+          volume: 65,
+          nowPlaying: defaultMood.song.title,
+        },
+      } as Device;
+    case "light":
+      return {
+        ...baseDevice,
+        type: "light",
+        name: name || `Smart Light ${Math.floor(Math.random() * 1000)}`,
+        output: {
+          brightness: 70,
+          color: defaultMood.color,
+          temperature: 4000,
+        },
+      } as Device;
+    case "scent":
+      return {
+        ...baseDevice,
+        type: "scent",
+        name: name || `Smart Diffuser ${Math.floor(Math.random() * 1000)}`,
+        output: {
+          scentType: defaultMood.scent.name,
+          scentLevel: 5,
+          scentInterval: 30,
+        },
+      } as Device;
+    case "speaker":
+      return {
+        ...baseDevice,
+        type: "speaker",
+        name: name || `Smart Speaker ${Math.floor(Math.random() * 1000)}`,
+        output: {
+          volume: 60,
+          nowPlaying: defaultMood.song.title,
+        },
+      } as Device;
+    default:
+      throw new Error(`Invalid device type: ${type}`);
+  }
 }

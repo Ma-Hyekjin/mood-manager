@@ -38,21 +38,6 @@ function isValidHexColor(hex: string): boolean {
 }
 
 /**
- * HEX 색상을 RGB로 변환
- */
-function hexToRgb(hex: string): [number, number, number] {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (!result) {
-    throw new Error(`Invalid hex color: ${hex}`);
-  }
-  return [
-    parseInt(result[1], 16),
-    parseInt(result[2], 16),
-    parseInt(result[3], 16),
-  ];
-}
-
-/**
  * 값 범위 제한
  */
 function clamp(value: number, min: number, max: number): number {
@@ -154,7 +139,7 @@ export function validateAndNormalizeResponse(
     throw new Error("Invalid response: moodAlias is required and must be a string");
   }
 
-  if (!rawResponse.moodColor || !isValidHexColor(rawResponse.moodColor)) {
+  if (!rawResponse.moodColor || typeof rawResponse.moodColor !== 'string' || !isValidHexColor(rawResponse.moodColor)) {
     throw new Error("Invalid response: moodColor is required and must be a valid HEX color");
   }
 

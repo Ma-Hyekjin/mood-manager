@@ -17,7 +17,7 @@ interface ConfirmPasswordSectionProps {
 
 export default function ConfirmPasswordSection({
   confirmPassword,
-  password: _password,
+  password: _password, // eslint-disable-line @typescript-eslint/no-unused-vars
   passwordsMatch,
   showConfirmPassword,
   onConfirmPasswordChange,

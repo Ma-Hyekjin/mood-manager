@@ -125,6 +125,7 @@ export default function ProfileSection({
             <label className="cursor-pointer">
               <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden relative group">
                 {profileImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={profileImage}
                     alt="Profile"
@@ -147,6 +148,7 @@ export default function ProfileSection({
           ) : (
             <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
               {profileImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={profileImage}
                   alt="Profile"

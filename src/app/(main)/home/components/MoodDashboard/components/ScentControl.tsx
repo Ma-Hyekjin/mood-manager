@@ -4,7 +4,7 @@
 
 import { TbSpray } from "react-icons/tb";
 import type { Mood } from "@/types/mood";
-import { getScentIconColor } from "../utils/moodUtils";
+import { hexToRgba } from "@/lib/utils";
 
 interface ScentControlProps {
   mood: Mood;
@@ -15,12 +15,6 @@ interface ScentControlProps {
 export default function ScentControl({ mood, onScentClick, moodColor }: ScentControlProps) {
   // 무드 색상 사용 (투명도 낮게 - 더 진하게)
   const buttonColor = moodColor || mood.color;
-  const hexToRgba = (hex: string, alpha: number) => {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  };
   
   return (
     <div className="flex items-center justify-end gap-1.5 mb-2">

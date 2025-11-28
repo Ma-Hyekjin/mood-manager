@@ -17,7 +17,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth/session";
+import { requireAuth, checkMockMode } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -29,7 +29,7 @@ import { prisma } from "@/lib/prisma";
  * - 성공: { profile: UserProfile }
  * - 실패: { error: "ERROR_CODE", message: "에러 메시지" }
  */
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     // 1. 세션 검증
     const sessionOrError = await requireAuth();
@@ -38,7 +38,24 @@ export async function GET(_request: NextRequest) {
     }
     const session = sessionOrError;
 
-    // 2. 사용자 프로필 조회
+    // 2. 목업 모드 확인 (관리자 계정)
+    if (checkMockMode(session)) {
+      console.log("[GET /api/auth/profile] 목업 모드: 관리자 계정");
+      return NextResponse.json({
+        profile: {
+          email: session.user.email || "admin@moodmanager.com",
+          name: "Admin",
+          familyName: "User",
+          birthDate: "1990-01-01",
+          gender: "Male",
+          phone: null,
+          createdAt: new Date().toISOString().split("T")[0],
+          profileImageUrl: null,
+        },
+      });
+    }
+
+    // 3. 사용자 프로필 조회
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: {
@@ -60,7 +77,7 @@ export async function GET(_request: NextRequest) {
       );
     }
 
-    // 3. 프로필 데이터 포맷팅
+    // 4. 프로필 데이터 포맷팅
     // [필드명 매핑 규칙] DB: givenName → API 응답: name
     const profile = {
       email: user.email,
@@ -123,7 +140,41 @@ export async function PUT(request: NextRequest) {
     }
     const session = sessionOrError;
 
-    // 2. FormData 파싱
+    // 2. 목업 모드 확인 (관리자 계정)
+    if (checkMockMode(session)) {
+      console.log("[PUT /api/auth/profile] 목업 모드: 관리자 계정");
+      // 목업 모드에서는 요청한 데이터를 그대로 반환
+      const formData = await request.formData();
+      const name = (formData.get("name") as string) || "Admin";
+      const familyName = (formData.get("familyName") as string) || "User";
+      const birthDateStr = formData.get("birthDate") as string | null;
+      const gender = formData.get("gender") as string | null;
+      const phone = formData.get("phone") as string | null;
+      const profileImage = formData.get("profileImage") as File | null;
+      
+      let profileImageUrl: string | null = null;
+      if (profileImage && profileImage.size > 0) {
+        const arrayBuffer = await profileImage.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const base64 = buffer.toString("base64");
+        profileImageUrl = `data:${profileImage.type};base64,${base64}`;
+      }
+      
+      return NextResponse.json({
+        profile: {
+          email: session.user.email || "admin@moodmanager.com",
+          name,
+          familyName,
+          birthDate: birthDateStr || "1990-01-01",
+          gender: gender || "Male",
+          phone,
+          createdAt: new Date().toISOString().split("T")[0],
+          profileImageUrl,
+        },
+      });
+    }
+
+    // 3. FormData 파싱
     const formData = await request.formData();
     const name = formData.get("name") as string;
     const familyName = formData.get("familyName") as string;
@@ -132,7 +183,7 @@ export async function PUT(request: NextRequest) {
     const phone = formData.get("phone") as string | null;
     const profileImage = formData.get("profileImage") as File | null;
 
-    // 3. 필수 필드 검증
+    // 4. 필수 필드 검증
     if (!name || !familyName) {
       return NextResponse.json(
         {
@@ -143,7 +194,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // 3-1. 생년월일 검증 (제공된 경우)
+    // 4-1. 생년월일 검증 (제공된 경우)
     let birthDate: Date | undefined = undefined;
     if (birthDateStr) {
       birthDate = new Date(birthDateStr);
@@ -158,7 +209,7 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // 3-2. 성별 검증 (제공된 경우)
+    // 4-2. 성별 검증 (제공된 경우)
     if (gender && gender !== "male" && gender !== "female") {
       return NextResponse.json(
         {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 
@@ -19,7 +19,7 @@ interface UserProfile {
  * [API 연동 완료] GET /api/auth/profile 호출
  */
 export function useProfile() {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editedName, setEditedName] = useState("");
@@ -31,14 +31,8 @@ export function useProfile() {
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // 프로필 정보 조회 (실제 API 호출)
-  useEffect(() => {
-    if (status === "authenticated") {
-      fetchProfile();
-    }
-  }, [status]);
-
-  const fetchProfile = async () => {
+  // 프로필 정보 조회 함수
+  const fetchProfile = useCallback(async () => {
     try {
       const response = await fetch("/api/auth/profile");
       if (!response.ok) {
@@ -51,7 +45,14 @@ export function useProfile() {
       console.error("Error fetching profile:", error);
       toast.error("Failed to load profile data.");
     }
-  };
+  }, []);
+
+  // 프로필 정보 조회 (실제 API 호출)
+  useEffect(() => {
+    if (session) {
+      fetchProfile();
+    }
+  }, [session, fetchProfile]);
 
   // 프로필 정보가 변경되면 편집 필드도 업데이트
   useEffect(() => {

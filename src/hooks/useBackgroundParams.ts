@@ -55,11 +55,18 @@ export function useBackgroundParams(
         return;
       }
 
+      // segments가 없거나 비어있으면 스킵
+      if (!moodStream.segments || !Array.isArray(moodStream.segments) || moodStream.segments.length === 0) {
+        console.warn("[useBackgroundParams] No segments available in mood stream");
+        return;
+      }
+
       setIsLoading(true);
       try {
         const response = await fetch("/api/ai/background-params", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
             mode: "stream",
             segments: moodStream.segments, // 10개 세그먼트 전체 전달
@@ -68,6 +75,12 @@ export function useBackgroundParams(
             forceFresh: true,
           }),
         });
+
+        // 401 에러 시 로그인 페이지로 리다이렉트
+        if (response.status === 401) {
+          window.location.href = "/login";
+          return;
+        }
 
         if (!response.ok) {
           throw new Error("Failed to fetch background params");
@@ -78,45 +91,37 @@ export function useBackgroundParams(
         setBackgroundParams(data);
       } catch (error) {
         console.error("Error fetching background params:", error);
-        // 기본값 사용
-        setBackgroundParams({
-          moodAlias: moodStream.currentMood.name,
-          musicSelection: moodStream.currentMood.music.title,
-          moodColor: moodStream.currentMood.lighting.color,
-          lighting: {
-            brightness: 50,
-            temperature: 4000,
-          },
-          backgroundIcon: {
-            name: "FaLeaf",
-            category: "nature",
-          },
-          backgroundWind: {
-            direction: 180,
-            speed: 3,
-          },
-          animationSpeed: 4,
-          iconOpacity: 0.7,
-        });
+        // 에러 발생 시 기본값 사용
+        if (moodStream.currentMood) {
+          setBackgroundParams({
+            moodAlias: moodStream.currentMood.name || "Calm Breeze",
+            musicSelection: moodStream.currentMood.music?.title || "Unknown",
+            moodColor: moodStream.currentMood.lighting?.color || "#E6F3FF",
+            lighting: {
+              brightness: 50,
+              temperature: 4000,
+            },
+            backgroundIcon: {
+              name: "FaLeaf",
+              category: "nature",
+            },
+            backgroundWind: {
+              direction: 180,
+              speed: 3,
+            },
+            animationSpeed: 4,
+            iconOpacity: 0.7,
+            source: "fallback",
+          });
+        }
       } finally {
         setIsLoading(false);
       }
     }
 
     fetchBackgroundParams();
-  }, [moodStream?.streamId, shouldFetch]); // streamId가 변경될 때만 재요청
+  }, [moodStream?.streamId, shouldFetch, moodStream]); // streamId가 변경될 때만 재요청
 
   return { backgroundParams, isLoading };
-}
-
-function hexToRgb(hex: string): [number, number, number] {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result
-    ? [
-        parseInt(result[1], 16),
-        parseInt(result[2], 16),
-        parseInt(result[3], 16),
-      ]
-    : [230, 243, 255];
 }
 

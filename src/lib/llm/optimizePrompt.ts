@@ -15,10 +15,13 @@ interface MoodStreamSegmentMood {
 
 interface MoodStreamSegment {
   timestamp: number;
-  mood: MoodStreamSegmentMood;
-  music: { genre: string; title: string };
-  scent: { type: string; name: string };
-  lighting: { color: string; rgb: [number, number, number] };
+  moodName?: string;
+  musicGenre?: string;
+  scentType?: string;
+  mood?: MoodStreamSegmentMood;
+  music?: { genre: string; title: string };
+  scent?: { type: string; name: string };
+  lighting?: { color: string; rgb: [number, number, number] };
   duration: number;
 }
 
@@ -127,7 +130,7 @@ export function generateOptimizedPrompt(
     streamInfo = `[10개세그먼트] 무드:${uniqueMoods.join(',')} 장르:${uniqueGenres.join(',')} 향:${uniqueScents.join(',')}`;
   }
   
-  // 최적화된 프롬프트 (토큰 최소화, 영어 응답 강제)
+  // 최적화된 프롬프트 (토큰 최소화, 영어 응답 강제, 다양성 강조)
   return `Mood background design (Respond in English only)
 
 [MOOD] ${moodName} | [MUSIC] ${musicGenre} | [SCENT] ${scentType} | [TIME] ${timeOfDay}h | [SEASON] ${season}
@@ -145,6 +148,8 @@ Return ONE JSON object only, in English, with the following fields.
 Important:
 - Use ONLY one of the iconCategory keys above for backgroundIcon.category.
 - Do NOT invent new icon categories.
+- VARIETY: Even for similar moods, vary colors, icons, and music selections. Avoid repetitive blue/calm themes. Use diverse color palettes (warm yellows, browns, greens, purples, etc.) when appropriate.
+- moodColor: Choose colors that match the mood but vary across different segments. Don't always default to blue tones.
 
 {
   "moodAlias": "2-4 word English nickname",

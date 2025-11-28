@@ -61,7 +61,6 @@ function cleanupListener() {
       unsubscribe();
       unsubscribe = null;
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error("[periodicListener] 리스너 정리 중 오류:", error);
     }
   }
@@ -73,7 +72,6 @@ function cleanupListener() {
  */
 function attemptReconnect() {
   if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-    // eslint-disable-next-line no-console
     console.error(
       `[periodicListener] 최대 재연결 시도 횟수(${MAX_RECONNECT_ATTEMPTS})에 도달했습니다. 재연결을 중단합니다.`
     );
@@ -83,7 +81,6 @@ function attemptReconnect() {
   reconnectAttempts++;
   const delay = getReconnectDelay(reconnectAttempts - 1);
 
-  // eslint-disable-next-line no-console
   console.log(
     `[periodicListener] ${delay}ms 후 재연결 시도 (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`
   );
@@ -96,7 +93,6 @@ function attemptReconnect() {
 
 export function startPeriodicListener() {
   if (isListenerStarted) {
-    // eslint-disable-next-line no-console
     console.log("[periodicListener] 이미 리스너가 시작되어 있습니다. (중복 방지)");
     return;
   }
@@ -109,7 +105,6 @@ export function startPeriodicListener() {
 
   const colRef = collection(db, "users", TEST_USER_ID, "raw_periodic");
 
-  // eslint-disable-next-line no-console
   console.log("[periodicListener] raw_periodic 스트림 구독 시작...");
 
   try {
@@ -127,7 +122,6 @@ export function startPeriodicListener() {
         });
       },
       (error) => {
-        // eslint-disable-next-line no-console
         console.error("[periodicListener] Firestore onSnapshot 에러:", {
           code: error.code,
           message: error.message,
@@ -151,7 +145,6 @@ export function startPeriodicListener() {
         } else {
           // 재연결하지 않아야 하는 에러 (예: 권한 오류)
           cleanupListener();
-          // eslint-disable-next-line no-console
           console.error(
             "[periodicListener] 재연결하지 않는 에러입니다. 리스너를 중단합니다."
           );
@@ -159,7 +152,6 @@ export function startPeriodicListener() {
       }
     );
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error("[periodicListener] 리스너 시작 중 예외 발생:", error);
     cleanupListener();
     attemptReconnect();
@@ -172,6 +164,5 @@ export function startPeriodicListener() {
 export function stopPeriodicListener() {
   cleanupListener();
   reconnectAttempts = 0;
-  // eslint-disable-next-line no-console
   console.log("[periodicListener] 리스너가 중지되었습니다.");
 }

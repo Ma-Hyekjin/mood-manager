@@ -38,7 +38,7 @@ export async function DELETE(request: NextRequest) {
     if (sessionOrError instanceof NextResponse) {
       return sessionOrError; // 401 응답 반환
     }
-    const session = sessionOrError;
+    const session = sessionOrError as { user: { id: string; email: string } };
 
     // 2. 요청 본문 파싱
     const body = await request.json();
@@ -56,6 +56,12 @@ export async function DELETE(request: NextRequest) {
     }
 
     // 4. 사용자 삭제 (Cascade로 관련 데이터도 함께 삭제)
+    if (!session.user?.id) {
+      return NextResponse.json(
+        { error: "UNAUTHORIZED", message: "인증이 필요합니다." },
+        { status: 401 }
+      );
+    }
     await prisma.user.delete({
       where: { id: session.user.id },
     });

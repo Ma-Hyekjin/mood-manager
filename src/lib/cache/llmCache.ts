@@ -23,7 +23,7 @@ const CACHE_TTL = 60 * 60 * 1000; // 1시간
 /**
  * 캐시 키 생성
  * 
- * 같은 무드, 시간대, 계절, 스트레스 지수 범위에서 캐시 재사용
+ * 다양성을 위해 세그먼트 인덱스도 포함하여 같은 무드라도 다른 세그먼트에서는 다른 응답 생성
  */
 function generateCacheKey(input: {
   moodName: string;
@@ -32,11 +32,15 @@ function generateCacheKey(input: {
   timeOfDay: number;
   season: string;
   stressIndex: number; // 범위로 그룹화
+  segmentIndex?: number; // 세그먼트 인덱스 (다양성 확보)
 }): string {
   // 스트레스 지수를 범위로 그룹화 (0-20, 21-40, 41-60, 61-80, 81-100)
   const stressRange = Math.floor(input.stressIndex / 20) * 20;
   
-  return `${input.moodName}-${input.musicGenre}-${input.scentType}-${input.timeOfDay}-${input.season}-${stressRange}`;
+  // 세그먼트 인덱스가 있으면 포함 (같은 무드라도 세그먼트마다 다른 응답)
+  const segmentPart = input.segmentIndex !== undefined ? `-seg${input.segmentIndex}` : "";
+  
+  return `${input.moodName}-${input.musicGenre}-${input.scentType}-${input.timeOfDay}-${input.season}-${stressRange}${segmentPart}`;
 }
 
 /**
@@ -65,10 +69,13 @@ export function getCachedResponse(
  * 캐시에 응답 저장
  */
 export function setCachedResponse(
-  input: Parameters<typeof generateCacheKey>[0],
+  input: Parameters<typeof generateCacheKey>[0] & { mode?: string },
   response: BackgroundParamsResponse
 ): void {
-  const key = generateCacheKey(input);
+  // mode 필드가 있으면 제거 (캐시 키에는 포함하지 않음)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { mode, ...cacheInput } = input;
+  const key = generateCacheKey(cacheInput);
   const now = Date.now();
   
   cache.set(key, {

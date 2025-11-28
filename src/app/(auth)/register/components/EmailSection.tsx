@@ -21,7 +21,7 @@ export default function EmailSection({
   onEmailChange,
   onErrorClear,
   onEnterKey,
-  validateEmail: _validateEmail,
+  validateEmail: _validateEmail, // eslint-disable-line @typescript-eslint/no-unused-vars
 }: EmailSectionProps) {
   return (
     <div className="flex flex-col space-y-2">

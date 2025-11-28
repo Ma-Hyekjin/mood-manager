@@ -11,7 +11,6 @@ import type { Mood } from "@/types/mood";
 import type { BackgroundParams } from "@/hooks/useBackgroundParams";
 
 interface UseDeviceSyncProps {
-  devices: Device[];
   setDevices: React.Dispatch<React.SetStateAction<Device[]>>;
   backgroundParams: BackgroundParams | null;
   currentMood: Mood;
@@ -21,7 +20,6 @@ interface UseDeviceSyncProps {
  * LLM 결과 및 무드 변경을 디바이스에 반영하는 훅
  */
 export function useDeviceSync({
-  devices,
   setDevices,
   backgroundParams,
   currentMood,
@@ -59,6 +57,29 @@ export function useDeviceSync({
               brightness: brightness,
               temperature: temperature, // 조명 디바이스 색온도 (목업이지만 유의미한 연결)
               // color는 변경하지 않음 (기존 색상 유지)
+            },
+          };
+        }
+        if (d.type === "scent") {
+          // Scent: 향 타입 및 레벨 반영
+          return {
+            ...d,
+            output: {
+              ...d.output,
+              scentType: currentMood.scent.name,
+              scentLevel: d.output.scentLevel || 7,
+              scentInterval: d.output.scentInterval || 30,
+            },
+          };
+        }
+        if (d.type === "speaker") {
+          // Speaker: 음악 제목 및 볼륨 반영
+          return {
+            ...d,
+            output: {
+              ...d.output,
+              nowPlaying: currentMood.song.title,
+              volume: d.output.volume || 60,
             },
           };
         }

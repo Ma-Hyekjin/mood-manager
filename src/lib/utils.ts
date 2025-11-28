@@ -27,18 +27,32 @@ export function blendWithWhite(color: string, whiteRatio: number = 0.9): string 
 }
 
 /**
+ * HEX 색상을 RGB 배열로 변환하는 함수
+ * @param hex - HEX 색상 (예: "#FFD700")
+ * @returns RGB 배열 [R, G, B] (각 값 0-255)
+ */
+export function hexToRgb(hex: string): [number, number, number] {
+  const clean = hex.replace("#", "");
+  if (clean.length !== 6) {
+    return [230, 243, 255]; // 기본값 (하늘색)
+  }
+  const result = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(clean);
+  return result
+    ? [
+        parseInt(result[1], 16),
+        parseInt(result[2], 16),
+        parseInt(result[3], 16),
+      ]
+    : [230, 243, 255]; // 기본값
+}
+
+/**
  * HEX 색상을 RGBA 문자열로 변환하는 함수
  * @param hex - HEX 색상 (예: "#FFD700")
  * @param alpha - 알파 값 (0~1)
  * @returns RGBA 색상 문자열 (예: "rgba(255, 215, 0, 0.5)")
  */
 export function hexToRgba(hex: string, alpha: number): string {
-  const clean = hex.replace("#", "");
-  if (clean.length !== 6) {
-    return `rgba(255, 255, 255, ${alpha})`;
-  }
-  const r = parseInt(clean.slice(0, 2), 16);
-  const g = parseInt(clean.slice(2, 4), 16);
-  const b = parseInt(clean.slice(4, 6), 16);
+  const [r, g, b] = hexToRgb(hex);
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }

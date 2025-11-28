@@ -3,8 +3,7 @@
 // ======================================================
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requireAuth, checkMockMode } from "@/lib/auth/session";
 import type { ScentType } from "@/types/mood";
 
 /**
@@ -23,16 +22,23 @@ export async function DELETE(
   { params }: { params: Promise<{ savedMoodId: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+    const sessionOrError = await requireAuth();
+    if (sessionOrError instanceof NextResponse) {
+      return sessionOrError;
     }
+    const session = sessionOrError;
 
-    const userId = session.user.id;
     const { savedMoodId } = await params;
+
+    // 목업 모드 확인 (관리자 계정)
+    if (checkMockMode(session)) {
+      console.log("[DELETE /api/moods/saved/:savedMoodId] 목업 모드: 관리자 계정");
+      // 관리자 모드에서는 항상 성공 응답 (클라이언트에서 삭제 처리)
+      return NextResponse.json({
+        success: true,
+        deletedId: savedMoodId,
+      });
+    }
 
     // TODO: 실제 DB 연동 시 Firestore에서 삭제
     // Firestore: users/{userId}/savedMoods/{savedMoodId} 삭제
@@ -67,15 +73,12 @@ export async function POST(
   { params }: { params: Promise<{ savedMoodId: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+    const sessionOrError = await requireAuth();
+    if (sessionOrError instanceof NextResponse) {
+      return sessionOrError;
     }
+    // const session = sessionOrError; // 향후 사용 예정
 
-    const userId = session.user.id;
     const { savedMoodId } = await params;
 
     // TODO: 실제 DB 연동 시 Firestore에서 저장된 무드 조회

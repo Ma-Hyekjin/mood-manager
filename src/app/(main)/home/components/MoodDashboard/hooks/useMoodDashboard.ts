@@ -3,9 +3,12 @@
 // ======================================================
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import type { Mood } from "@/types/mood";
 import { MOODS } from "@/types/mood";
 import type { MoodStreamSegment } from "@/hooks/useMoodStream";
+import { saveMood, deleteSavedMood, getSavedMoods, type SavedMood } from "@/lib/mock/savedMoodsStorage";
+import { ADMIN_EMAIL } from "@/lib/auth/mockMode";
 
 interface UseMoodDashboardProps {
   mood: Mood;
@@ -25,6 +28,9 @@ export function useMoodDashboard({
   onSongChange,
   currentSegment,
 }: UseMoodDashboardProps) {
+  const { data: session } = useSession();
+  const isAdminMode = session?.user?.email === ADMIN_EMAIL;
+  
   const [isLoading, setIsLoading] = useState(true);
   const [playing, setPlaying] = useState(true);
   const [progress] = useState(20);
@@ -302,19 +308,32 @@ export function useMoodDashboard({
     if (isSaved) {
       // 저장 취소 (무드셋에서 제거)
       try {
-        const response = await fetch("/api/moods/saved");
-        if (response.ok) {
-          const data = await response.json() as { savedMoods?: Array<{ id: string; moodId: string }> };
-          const savedMood = data.savedMoods?.find(
-            (saved) => saved.moodId === mood.id
-          );
+        if (isAdminMode) {
+          // 관리자 모드: localStorage에서 삭제
+          const savedMoods = getSavedMoods();
+          const savedMood = savedMoods.find((saved) => saved.moodId === mood.id);
           if (savedMood) {
-            const deleteResponse = await fetch(
-              `/api/moods/saved/${savedMood.id}`,
-              { method: "DELETE" }
+            deleteSavedMood(savedMood.id);
+            setIsSaved(false);
+          }
+        } else {
+          // 일반 모드: API 호출
+          const response = await fetch("/api/moods/saved", {
+            credentials: "include",
+          });
+          if (response.ok) {
+            const data = await response.json() as { savedMoods?: Array<{ id: string; moodId: string }> };
+            const savedMood = data.savedMoods?.find(
+              (saved) => saved.moodId === mood.id
             );
-            if (deleteResponse.ok) {
-              setIsSaved(false);
+            if (savedMood) {
+              const deleteResponse = await fetch(
+                `/api/moods/saved/${savedMood.id}`,
+                { method: "DELETE", credentials: "include" }
+              );
+              if (deleteResponse.ok) {
+                setIsSaved(false);
+              }
             }
           }
         }
@@ -325,22 +344,41 @@ export function useMoodDashboard({
       // 무드 저장
       try {
         const musicGenre = currentSegment?.mood?.music?.genre || "newage";
+        const savedMoodData: SavedMood = {
+          id: `saved-${Date.now()}`,
+          moodId: mood.id,
+          moodName: mood.name,
+          moodColor: mood.color,
+          music: {
+            genre: musicGenre,
+            title: mood.song.title,
+          },
+          scent: {
+            type: mood.scent.type,
+            name: mood.scent.name,
+          },
+          preferenceCount,
+          savedAt: Date.now(),
+        };
+
+        if (isAdminMode) {
+          // 관리자 모드: localStorage에 저장
+          saveMood(savedMoodData);
+          setIsSaved(true);
+        }
+
+        // API 호출 (관리자 모드에서도 호출 가능 - 목업 응답 반환)
         const response = await fetch("/api/moods/saved", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
-            moodId: mood.id,
-            moodName: mood.name,
-            moodColor: mood.color,
-            music: {
-              genre: musicGenre,
-              title: mood.song.title,
-            },
-            scent: {
-              type: mood.scent.type,
-              name: mood.scent.name,
-            },
-            preferenceCount,
+            moodId: savedMoodData.moodId,
+            moodName: savedMoodData.moodName,
+            moodColor: savedMoodData.moodColor,
+            music: savedMoodData.music,
+            scent: savedMoodData.scent,
+            preferenceCount: savedMoodData.preferenceCount,
           }),
         });
         if (response.ok) {

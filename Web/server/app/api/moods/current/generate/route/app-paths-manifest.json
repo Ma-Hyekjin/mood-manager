@@ -1,0 +1,3 @@
+{
+  "/api/moods/current/generate/route": "app/api/moods/current/generate/route.js"
+}

@@ -1,0 +1,3 @@
+{
+  "/api/moods/saved/[savedMoodId]/route": "app/api/moods/saved/[savedMoodId]/route.js"
+}

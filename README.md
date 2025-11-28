@@ -2,6 +2,9 @@
 
 ### AI-Based Personalized Mood Management System for Smart Homes
 
+#### UI FLOW (Mock)
+Sample page: [mood-manager-official](https://mood-manager-official.vercel.app/)
+
 #### 📄 API Specification (v1)
 
 Watch Repository: [mood-manager-watch](https://github.com/Ma-Hyekjin/mood-manager-watch.git)

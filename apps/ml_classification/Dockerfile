@@ -2,7 +2,7 @@
 FROM public.ecr.aws/lambda/python:3.11
 
 # 1. System Dependencies
-RUN yum update -y && yum install -y libsndfile libgomp gcc-c++ python3-devel
+RUN yum install -y libsndfile libgomp gcc-c++ python3-devel
 
 # 2. Python Libraries
 COPY requirements_docker.txt .

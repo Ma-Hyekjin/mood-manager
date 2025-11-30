@@ -110,16 +110,16 @@ def lambda_handler(event, context):
         processed_count += 1
         print(f"result: {label} ({conf:.2f}%)")
         
-        # GET Web Server by Query String
+        # POST Web Server by JSON Body
         try:
-            params = {
+            payload = {
                 "docId": doc_id,
                 "result": label,
-                "confidence": conf,
+                "confidence": float(conf),
                 "timestamp": timestamp
             }
 
-            res = requests.get(WEB_SERVER_URL, params=params, timeout=3)
+            res = requests.post(WEB_SERVER_URL, json=payload, timeout=3)
             print(res.status_code)
         except Exception as e:
             print(e)

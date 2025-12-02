@@ -27,8 +27,29 @@ export default function InquiryPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!subject || !message) {
-      toast.error("Please fill in all fields.");
+    // Validation
+    if (!subject.trim()) {
+      toast.error("Subject is required.");
+      return;
+    }
+    if (subject.trim().length < 3) {
+      toast.error("Subject must be at least 3 characters.");
+      return;
+    }
+    if (subject.trim().length > 100) {
+      toast.error("Subject must be less than 100 characters.");
+      return;
+    }
+    if (!message.trim()) {
+      toast.error("Message is required.");
+      return;
+    }
+    if (message.trim().length < 10) {
+      toast.error("Message must be at least 10 characters.");
+      return;
+    }
+    if (message.trim().length > 2000) {
+      toast.error("Message must be less than 2000 characters.");
       return;
     }
 
@@ -61,10 +82,12 @@ export default function InquiryPage() {
       //   throw new Error(error.message || "Failed to submit inquiry");
       // }
 
+      toast.success("Inquiry submitted successfully. We'll get back to you soon.");
       setIsSubmitted(true);
     } catch (error) {
       console.error("Error submitting inquiry:", error);
-      toast.error("Failed to submit inquiry. Please try again.");
+      const errorMessage = error instanceof Error ? error.message : "Failed to submit inquiry. Please try again.";
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

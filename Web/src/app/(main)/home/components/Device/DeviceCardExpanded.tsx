@@ -62,7 +62,7 @@ export default function DeviceCardExpanded({
 
   return (
     <div
-      className={`p-4 rounded-xl shadow-md border relative animate-expand cursor-pointer transition-all min-h-[200px] backdrop-blur-sm
+      className={`p-4 rounded-xl shadow-md border relative animate-expand cursor-pointer transition-all duration-300 min-h-[200px] backdrop-blur-sm hover:shadow-lg
         ${device.power ? "" : "opacity-60"}
       `}
       style={{
@@ -110,10 +110,10 @@ export default function DeviceCardExpanded({
           lightColor={lightColor}
           lightBrightness={lightBrightness}
           scentLevel={scentLevel}
-          onUpdateLightColor={device.type === "light" ? undefined : (color) => {
+          onUpdateLightColor={device.type === "light" ? (color) => {
             setLightColor(color);
             onUpdateLightColor?.(color);
-          }}
+          } : undefined}
           onUpdateLightBrightness={(brightness) => {
             setLightBrightness(brightness);
             onUpdateLightBrightness?.(brightness);

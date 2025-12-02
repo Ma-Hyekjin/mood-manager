@@ -11,6 +11,8 @@ interface UserProfile {
   phone: string | null;
   createdAt: string;
   profileImageUrl?: string | null;
+  provider?: string | null;
+  providerId?: string | null;
 }
 
 /**
@@ -93,9 +95,46 @@ export function useProfile() {
   };
 
   const handleProfileUpdate = async () => {
-    if (!editedName.trim() || !editedFamilyName.trim()) {
-      toast.error("Name and Family Name are required.");
+    // Validation: Name and Family Name are required
+    if (!editedName.trim()) {
+      toast.error("Name is required.");
       return;
+    }
+    if (!editedFamilyName.trim()) {
+      toast.error("Family name is required.");
+      return;
+    }
+
+    // Validation: Name length
+    if (editedName.trim().length < 1 || editedName.trim().length > 50) {
+      toast.error("Name must be between 1 and 50 characters.");
+      return;
+    }
+    if (editedFamilyName.trim().length < 1 || editedFamilyName.trim().length > 50) {
+      toast.error("Family name must be between 1 and 50 characters.");
+      return;
+    }
+
+    // Validation: Birth date format (if provided)
+    if (editedBirthDate) {
+      const birthDate = new Date(editedBirthDate);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) ? age - 1 : age;
+
+      if (isNaN(birthDate.getTime())) {
+        toast.error("Invalid birth date format.");
+        return;
+      }
+      if (actualAge < 12) {
+        toast.error("You must be at least 12 years old.");
+        return;
+      }
+      if (actualAge > 120) {
+        toast.error("Invalid birth date.");
+        return;
+      }
     }
 
     setIsUpdating(true);

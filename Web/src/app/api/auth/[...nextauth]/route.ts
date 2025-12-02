@@ -24,8 +24,41 @@ import { verifyPassword } from "@/lib/auth/password";
 import { normalizePhoneNumber } from "@/lib/utils/validation";
 import { isAdminAccount } from "@/lib/auth/mockMode";
 
+// Validate NEXTAUTH_SECRET in production
+if (process.env.NODE_ENV === "production" && (!process.env.NEXTAUTH_SECRET || process.env.NEXTAUTH_SECRET === "development-secret-key-change-in-production")) {
+  console.error("[NextAuth] ⚠️ WARNING: NEXTAUTH_SECRET is not set or using default value in production!");
+  console.error("[NextAuth] Please set a strong random secret in production environment.");
+}
+
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || "development-secret-key-change-in-production",
+  
+  // 세션 전략: JWT 사용 (DB 세션 대신)
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30일 (초 단위)
+    updateAge: 24 * 60 * 60, // 24시간마다 갱신
+  },
+
+  // JWT 설정
+  jwt: {
+    maxAge: 30 * 24 * 60 * 60, // 30일
+  },
+
+  // CSRF 보호 (기본 활성화, 추가 설정 가능)
+  useSecureCookies: process.env.NODE_ENV === "production",
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
+
   providers: [
     // 이메일/비밀번호 로그인 (Credentials Provider)
     CredentialsProvider({

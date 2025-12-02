@@ -1,7 +1,7 @@
 /**
  * 무드스트림 관리 훅
  * 
- * 30분 무드스트림을 관리하고, 새로고침 버튼 클릭 시에만 재생성
+ * 30분 무드스트림 관리, 새로고침 버튼 클릭 시에만 재생성
  */
 
 import { useState, useEffect, useRef } from "react";
@@ -22,7 +22,7 @@ export function useMoodStream() {
   const isGeneratingRef = useRef(false); // 백그라운드 생성 중복 방지
   const [isGeneratingNextStream, setIsGeneratingNextStream] = useState(false); // 다음 스트림 생성 중 UI 표시용
 
-  // 콜드스타트 및 백그라운드 생성
+  // 콜드스타트 및 백그라운드 생성 관리
   const { fetchMoodStream, generateBackgroundSegments } = useColdStart({
     setMoodStream,
     setCurrentSegmentIndex,
@@ -32,7 +32,7 @@ export function useMoodStream() {
     isGeneratingRef,
   });
 
-  // 자동 스트림 생성
+  // 자동 스트림 생성 관리
   const { generateNextStream } = useAutoGeneration({
     moodStream,
     currentSegmentIndex,
@@ -42,7 +42,7 @@ export function useMoodStream() {
     setIsGeneratingNextStream,
   });
 
-  // 스트림 전환
+  // 스트림 전환 관리
   const { switchToNextStream } = useStreamTransition({
     nextColdStartSegment,
     moodStream,
@@ -52,7 +52,7 @@ export function useMoodStream() {
     generateBackgroundSegments,
   });
 
-  // 새로고침
+  // 새로고침 관리
   const { refreshMoodStream } = useRefresh({
     setIsLoading,
     setMoodStream,
@@ -63,18 +63,22 @@ export function useMoodStream() {
   // V1: 마운트 시 딱 한 번만 콜드스타트 호출
   // fetchMoodStream은 useCallback으로 감싸져 있어서
   // 의존성에 넣으면 상태 변경 때마다 재호출되는 문제가 있으므로,
-  // 의도적으로 빈 배열 의존성을 사용한다.
+  // 의도적으로 빈 배열 의존성 사용
   useEffect(() => {
     fetchMoodStream();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 1세그 남았을 때 자동 스트림 생성
+  // 8, 9, 10번째 세그먼트일 때 자동 스트림 생성
   useEffect(() => {
     if (!moodStream) return;
     
-    const remaining = moodStream.segments.length - currentSegmentIndex - 1;
-    if (remaining === 1) {
+    const clampedTotal = 10; // 항상 10개 세그먼트로 표시
+    const clampedIndex = currentSegmentIndex >= clampedTotal ? clampedTotal - 1 : currentSegmentIndex;
+    const remainingFromClamped = clampedTotal - clampedIndex - 1;
+    
+    // 8, 9, 10번째 세그먼트일 때 (remaining이 3, 2, 1일 때) 자동 생성
+    if (remainingFromClamped > 0 && remainingFromClamped <= 3) {
       generateNextStream();
     }
   }, [currentSegmentIndex, moodStream, generateNextStream]);

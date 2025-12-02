@@ -25,6 +25,8 @@ interface UserProfile {
   phone: string | null;
   createdAt: string;
   profileImageUrl?: string | null;
+  provider?: string | null;
+  providerId?: string | null;
 }
 
 interface ProfileSectionProps {
@@ -205,6 +207,16 @@ export default function ProfileSection({
           <Mail size={16} className="text-gray-400 mr-3" />
           <span className="text-gray-600">{profile?.email}</span>
         </div>
+
+        {/* Social Account (읽기 전용) */}
+        {profile?.provider && (
+          <div className="flex items-center text-sm">
+            <User size={16} className="text-gray-400 mr-3" />
+            <span className="text-gray-600 capitalize">
+              Connected via {profile.provider}
+            </span>
+          </div>
+        )}
 
         {/* Birth Date */}
         <div className="flex items-center text-sm">

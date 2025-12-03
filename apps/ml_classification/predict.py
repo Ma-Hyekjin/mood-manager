@@ -14,7 +14,7 @@ from datetime import datetime
 MODEL_PATH = "/var/task/onnx_model/model_quantized.onnx"           ## docker absolute path
 SAMPLE_RATE = 16000
 
-WEB_SERVER_URL = "http://54.180.50.127/ml/emotion"                 # have to update
+WEB_SERVER_URL = "https://moodmanager.me/api/ml/emotion-counts"              
 
 ort_session = None
 db = None
@@ -113,7 +113,6 @@ def lambda_handler(event, context):
         # POST Web Server by JSON Body
         try:
             payload = {
-                "docId": doc_id,
                 "result": label,
                 "confidence": float(conf),
                 "timestamp": timestamp

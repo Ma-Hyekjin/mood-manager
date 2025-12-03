@@ -36,7 +36,7 @@ def load_resources():
     
     if db is None:
         if not firebase_admin._apps:
-            cred = credentials.Certificate("./moodManagerCredKey.json")
+            cred = credentials.Certificate("/var/task/moodManagerCredKey.json")   ## docker absolute path
             initialize_app(cred)
         db = firestore.client()
 

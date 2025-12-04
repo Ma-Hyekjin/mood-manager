@@ -7,7 +7,7 @@ import os
 # 1. 경로 설정
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PYTORCH_MODEL_PATH = os.path.join(BASE_DIR, "saved_model")  # 학습된 PyTorch 모델 경로
-ONNX_EXPORT_PATH = os.path.join(BASE_DIR, "onnex_model")     # 결과물이 저장될 경로
+ONNX_EXPORT_PATH = os.path.join(BASE_DIR, "onnx_model")     # 결과물이 저장될 경로
 
 # 2. PyTorch 모델 로드 및 ONNX 변환 (export=True가 핵심)
 model = ORTModelForAudioClassification.from_pretrained(

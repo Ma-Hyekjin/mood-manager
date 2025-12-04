@@ -126,8 +126,8 @@ def process_datasets():
             continue
 
         # 4. 데이터 순회 및 저장
-        # 테스트를 위해 각 데이터셋 당 500개만 받습니다. (필요시 숫자 조정)
-        MAX_PER_DATASET = 500 
+        # 테스트를 위해 각 데이터셋 당 5000개만 받습니다. (필요시 숫자 조정)
+        MAX_PER_DATASET = 5000 
         
         current_count = 0
         try:
@@ -184,4 +184,4 @@ def process_datasets():
 if __name__ == "__main__":
     process_datasets()
 
-    # {'laughter': 149, 'sigh': 165, 'negative': 738}
+    # {'laughter': 719, 'sigh': 718, 'negative': 2926}

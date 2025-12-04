@@ -8,6 +8,11 @@ import librosa
 from torch.utils.data import Dataset, DataLoader
 from transformers import Wav2Vec2ForSequenceClassification, Wav2Vec2FeatureExtractor
 from audiomentations import Compose, AddGaussianNoise, AddBackgroundNoise, Shift, Gain
+from sklearn.metrics import (
+    accuracy_score, precision_recall_fscore_support, confusion_matrix, classification_report, average_precision_score
+)
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # ======= Preprocessing ========
 
@@ -177,6 +182,111 @@ def evaluate(model, loader):
             total += labels.size(0)
     return (correct / total) * 100 if total > 0 else 0
 
+def plot_confusion_matrix(cm, labels):
+    plt.figure(figsize=(6,5))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=labels, yticklabels=labels)
+    plt.xlabel("Predicted")
+    plt.ylabel("True")
+    plt.title("Confusion Matrix")
+    plt.savefig('confusion_matrix.png')
+    #plt.show()
+
+def plot_class_metrics(precision, recall, f1, labels):
+    x = np.arange(len(labels))
+    width = 0.25
+
+    plt.figure(figsize=(10,5))
+    plt.bar(x - width, precision, width, label="Precision")
+    plt.bar(x, recall, width, label="Recall")
+    plt.bar(x + width, f1, width, label="F1")
+
+    plt.xticks(x, labels)
+    plt.ylabel("Score")
+    plt.ylim(0,1)
+    plt.title("Per Class Evaluation Metrics")
+    plt.legend()
+    plt.grid(axis='y', linestyle='--', alpha=0.5)
+    plt.savefig('class_metrics.png')
+    #plt.show()
+
+
+def evaluate_with_metrics(model, loader, label_names=["laughter", "sigh", "negative"]):
+    model.eval()
+    all_preds = []
+    all_labels = []
+    all_probs = []
+
+    with torch.no_grad():
+        for batch in loader:
+            input_values = batch['input_values'].to(device)
+            labels = batch['labels'].to(device)
+
+            outputs = model(input_values)
+            logits = outputs.logits
+            probs = torch.softmax(logits, dim=-1)
+
+            preds = torch.argmax(probs, dim=-1)
+
+            all_labels.extend(labels.cpu().numpy())
+            all_preds.extend(preds.cpu().numpy())
+            all_probs.extend(probs.cpu().numpy())
+
+    all_labels = np.array(all_labels)
+    all_preds = np.array(all_preds)
+    all_probs = np.array(all_probs)
+
+    # ---- Basic accuracy ----
+    acc = accuracy_score(all_labels, all_preds)
+
+    # ---- Precision, Recall, F1 ----
+    precision, recall, f1, _ = precision_recall_fscore_support(
+        all_labels, all_preds, average=None
+    )
+    macro_f1 = f1.mean()
+
+    # ---- Confusion Matrix ----
+    cm = confusion_matrix(all_labels, all_preds)
+
+    # ---- mAP (multi-class) ----
+    # Convert labels to one-hot
+    num_classes = len(label_names)
+    labels_onehot = np.eye(num_classes)[all_labels]
+
+    ap_per_class = {}
+    for i, name in enumerate(label_names):
+        ap = average_precision_score(labels_onehot[:, i], all_probs[:, i])
+        ap_per_class[name] = ap
+    mAP = np.mean(list(ap_per_class.values()))
+
+    # ---- Print results ----
+    print("\n========== Evaluation Results ==========")
+    print(f"Accuracy: {acc*100:.2f}%")
+    print(f"Macro F1: {macro_f1:.4f}")
+
+    print("\n--- Per-Class Metrics ---")
+    for i, name in enumerate(label_names):
+        print(f"{name}: Precision={precision[i]:.3f}, Recall={recall[i]:.3f}, F1={f1[i]:.3f}, AP={ap_per_class[name]:.3f}")
+
+    print("\n--- Confusion Matrix ---")
+    print(cm)
+
+    print("\n--- Classification Report ---")
+    print(classification_report(all_labels, all_preds, target_names=label_names))
+
+    print(f"\nOverall mAP: {mAP:.4f}")
+    print("========================================\n")
+
+    plot_confusion_matrix(cm, label_names)
+    plot_class_metrics(precision, recall, f1, label_names)
+
+    return {
+        "accuracy": acc,
+        "macro_f1": macro_f1,
+        "per_class_ap": ap_per_class,
+        "mAP": mAP,
+        "confusion_matrix": cm
+    }
+
 # =========== Main Controller ==========
 def run_training():
     # 1. Data load
@@ -198,11 +308,15 @@ def run_training():
     model = get_model()
 
     # Weights to resolve class unbalance problem
-    weights = torch.tensor([5.0, 5.0, 1.0]).to(device)
+    weights = torch.tensor([4.1, 4.1, 1.0]).to(device)
     criterion = nn.CrossEntropyLoss(weight=weights)
     optimizer = optim.AdamW(model.parameters(), lr=LR)
 
-    # 4. Start Training
+    # 4. Graphing Epoch Train Loss / Val Accuracy
+    train_losses = []
+    val_accs=[]
+
+    # 5. Start Training
     print("Start Training...")
     best_acc = 0
 
@@ -211,12 +325,36 @@ def run_training():
         val_acc = evaluate(model, val_loader)
 
         print(f"Epoch {epoch+1}/{EPOCHS} | Train Loss: {train_loss:.4f} | Val Acc: {val_acc:2f}%")
+        train_losses.append(train_loss)
+        val_accs.append(val_acc)
 
         if val_acc > best_acc:
             best_acc = val_acc
             print(f"Best Performance - Model saved at {SAVE_PATH}")
             model.save_pretrained(SAVE_PATH)
+    
+    # plt setting
+    plt.figure(figsize=(12,5))
 
+    plt.subplot(1,2,1)
+    plt.plot(train_losses, label="Train Loss")
+    plt.title("Training Loss per Epoch")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.grid(True)
+    plt.legend()
+
+    plt.subplot(1,2,2)
+    plt.plot(val_accs, label="Validation Accuracy", color='orange')
+    plt.title("Validation Accuracy per Epoch")
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy (%)")
+    plt.grid(True)
+    plt.legend()
+
+    plt.savefig('epoch_val_metrics.png')
+    #plt.show()
+    
 
 def run_evaluation():
     test_files, test_labels = load_data_by_split(DATA_ROOT, "test")
@@ -234,9 +372,12 @@ def run_evaluation():
     test_ds = AudioDataset(test_files, test_labels, is_train=False)
     test_loader = DataLoader(test_ds, batch_size=BATCH_SIZE, shuffle=False)
 
-    acc = evaluate(model, test_loader)
-    print(f"Final Accuracy: {acc:2f}%")
+    #acc = evaluate(model, test_loader)
+    #print(f"Final Accuracy: {acc:2f}%")
+
+    results = evaluate_with_metrics(model, test_loader)
+    print(f"Final mAP: {results['mAP']:.4f}")
 
 if __name__ == "__main__":
     run_training()
-    #run_evaluation()
+    run_evaluation()

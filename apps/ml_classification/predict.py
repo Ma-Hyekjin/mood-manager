@@ -14,7 +14,8 @@ from datetime import datetime
 MODEL_PATH = "/var/task/onnx_model/model_quantized.onnx"           ## docker absolute path
 SAMPLE_RATE = 16000
 
-WEB_SERVER_URL = "https://moodmanager.me/api/ml/emotion-counts"              
+WEB_SERVER_URL = "https://moodmanager.me/api/ml/emotion-counts"
+LAMBDA_SECRET = "mm-ml-2025-demo-ABCD-9876"              
 
 ort_session = None
 db = None
@@ -118,7 +119,12 @@ def lambda_handler(event, context):
                 "timestamp": timestamp
             }
 
-            res = requests.post(WEB_SERVER_URL, json=payload, timeout=3)
+            headers = {
+                "x-ml-api-key": LAMBDA_SECRET,
+                "Content-Type": "application/json"
+            }
+
+            res = requests.post(WEB_SERVER_URL, json=payload, headers=headers, timeout=3)
             print(res.status_code)
         except Exception as e:
             print(e)

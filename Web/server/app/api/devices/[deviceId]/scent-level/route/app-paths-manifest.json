@@ -1,3 +1,0 @@
-{
-  "/api/devices/[deviceId]/scent-level/route": "app/api/devices/[deviceId]/scent-level/route.js"
-}

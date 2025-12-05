@@ -1,3 +1,0 @@
-{
-  "/api/devices/[deviceId]/scent-interval/route": "app/api/devices/[deviceId]/scent-interval/route.js"
-}

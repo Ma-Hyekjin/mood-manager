@@ -1,3 +1,0 @@
-{
-  "/api/devices/[deviceId]/power/route": "app/api/devices/[deviceId]/power/route.js"
-}
